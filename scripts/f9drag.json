@@ -1,0 +1,182 @@
+{
+    "entries": [
+        {
+            "value": "c",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "items": [
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0.0044739525834545171,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.004992070651373505,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0055319705949148437,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.007699697187242417,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0072777185559131348,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0072545138763930534,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0064948453355498613,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0058820633443205147,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0058908513356428494,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.00628907258380915,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0061411062181027844,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.007180198225037196,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0092450740616448965,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0081263355060108029,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0096317961592804167,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.00919593996770832,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0081914089547394583,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0081422483735361616,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0.0097271004879696567,
+                    "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                },
+                {
+                    "value": 0,
+                    "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+                }
+            ],
+            "$type": "kOS.Safe.Encapsulation.ListValue"
+        },
+        {
+            "value": "bin",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 0.1,
+            "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+        }
+    ],
+    "$type": "kOS.Safe.Encapsulation.Lexicon"
+}

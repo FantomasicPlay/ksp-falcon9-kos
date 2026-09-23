@@ -1,0 +1,37 @@
+{
+    "entries": [
+        {
+            "value": "dv",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 3403.7512687799262,
+            "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+        },
+        {
+            "value": "sma",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 1905252.5,
+            "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+        },
+        {
+            "value": "sI",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 0.99380868836409031,
+            "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+        },
+        {
+            "value": "mode",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": "asds",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        }
+    ],
+    "$type": "kOS.Safe.Encapsulation.Lexicon"
+}

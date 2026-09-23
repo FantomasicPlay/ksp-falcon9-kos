@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>KSP Overlay — Falcon 9</title>
+<style>
+  :root{
+    --s:1; --k:1;
+    --ink:#ffffff; --dim:rgba(255,255,255,.42); --track:rgba(255,255,255,.22);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{
+    width:100%; height:100%; background:transparent; overflow:hidden; color:#fff;
+    font-family:"VTF Justina GEO","Bahnschrift","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; user-select:none; cursor:none;
+  }
+  svg{ position:absolute; overflow:visible; display:block; }
+  text{ fill:#fff; }
+
+  #top{ left:0; top:calc(64px * var(--s)); width:calc(317px * var(--s)); height:calc(100px * var(--s));
+        transition:opacity .5s ease, transform .5s cubic-bezier(.3,.1,.25,1); }
+  body.launched-ui #top{ opacity:0; transform:translateY(calc(-26px * var(--s))); }
+
+  #left { left:0;  bottom:0; }
+  #right{ right:0; bottom:0; }
+  .side{ width:calc(584px * var(--s)); height:calc(178px * var(--s));
+         transition:opacity .52s ease, transform .52s cubic-bezier(.2,.85,.25,1); }
+  #left.off { opacity:0; transform:translateX(-100%); }
+  #right.off{ opacity:0; transform:translateX(100%); }
+  body.stale .side:not(.off){ opacity:.45; }
+
+  .t-tp  { font-size:19.6px; font-weight:400; }
+  .t-met { font-size:32px; font-weight:700; }
+  .t-mis { font-size:16px; font-weight:700; }
+  .g-cap { font-size:15px; font-weight:700; fill-opacity:.75; }
+  .g-val { font-size:34px; font-weight:700; }
+  .g-unit{ font-size:15px; font-weight:700; fill-opacity:.75; }
+
+  .trk { fill:#fff; fill-opacity:.5; }
+  .val { fill:none; stroke:#fff; stroke-width:14; transition:stroke-dashoffset .12s linear; }
+  .eng { fill:#fff; fill-opacity:.5; transition:fill-opacity .16s linear; }
+  .eng.on{ fill-opacity:1; }
+
+  .wgt{ transform-box:fill-box; transform-origin:center;
+        transition:opacity .42s ease, transform .42s cubic-bezier(.2,.85,.25,1); }
+  .wgt.w-off{ opacity:0; transform:translateY(14px) scale(.9); }
+
+  .lbl{ opacity:0; transform:translateY(8px); transform-box:fill-box;
+        transition:opacity .42s ease, transform .42s cubic-bezier(.2,.85,.25,1); }
+  body.sep .lbl{ opacity:1; transform:none; }
+  body.sep .lbl-r{ transition-delay:.43s; }
+
+  #centerbg{
+    position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(calc(1700px * var(--k)), 88vw); height:calc(433px * var(--k)); pointer-events:none;
+    background:radial-gradient(ellipse 46% 46% at 50% 82%,
+      rgba(0,0,0,.50) 0%, rgba(0,0,0,.38) 34%, rgba(0,0,0,.20) 58%,
+      rgba(0,0,0,.07) 78%, rgba(0,0,0,0) 100%);
+  }
+  #arcwrap{
+    position:absolute; left:0; right:0; bottom:0;
+    height:calc(224px * var(--k)); pointer-events:none;
+  }
+  #arcwrap svg{ position:absolute; inset:0; width:100%; height:100%; overflow:visible;
+                filter:drop-shadow(0 2px 7px rgba(0,0,0,.9)); }
+  .arc-bg{ fill:none; stroke:var(--track); stroke-width:1.6; }
+  .arc-inner{ fill:none; stroke:rgba(255,255,255,.30); stroke-width:1.2; }
+  .arc-fg{ fill:none; stroke:var(--ink); stroke-width:1.6; }
+  .ms-dot{ fill:rgba(0,0,0,.72); stroke:var(--track); stroke-width:1.8; }
+  .ms-dot.done{ stroke:var(--ink); stroke-width:2.4; }
+  .ms-core{ fill:var(--ink); opacity:0; transition:opacity .2s linear; }
+  .ms-core.done{ opacity:1; }
+  .ms-txt{ font-size:calc(15px * var(--k)); font-weight:700; letter-spacing:.08em;
+           text-transform:uppercase; fill:var(--track); }
+  .ms-txt.done{ fill:var(--ink); }
+  #nowtick{ stroke:var(--ink); stroke-width:2; }
+
+  #center{
+    position:absolute; left:50%; bottom:calc(48px * var(--k)); transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; white-space:nowrap;
+  }
+  #cmet{
+    font-size:calc(54px * var(--k)); font-weight:600; line-height:1;
+    font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
+    text-shadow:0 2px 10px rgba(0,0,0,.95), 0 0 3px rgba(0,0,0,.8);
+  }
+  #cmet .tp{ font-size:calc(35px * var(--k)); font-weight:400; margin-right:calc(4px * var(--k)); }
+  #cmis{
+    font-size:calc(14px * var(--k)); font-weight:700; letter-spacing:.13em;
+    color:var(--dim); margin-top:calc(6px * var(--k)); text-shadow:0 2px 8px rgba(0,0,0,.95);
+  }
+
+  #center, #arcwrap, #centerbg{
+    transition:opacity .5s ease, transform .5s cubic-bezier(.2,.85,.25,1);
+  }
+  body:not(.launched-ui) #center{ opacity:0; transform:translate(-50%, calc(18px * var(--k))); }
+  body:not(.launched-ui) #centerbg{ opacity:0; transform:translate(-50%, calc(18px * var(--k))); }
+  body:not(.launched-ui) #arcwrap{ opacity:0; transform:translateY(calc(18px * var(--k))); }
+  body.launched-ui.stale #center, body.launched-ui.stale #arcwrap{ opacity:.45; }
+
+  #nodata{
+    position:absolute; left:50%; bottom:calc(236px * var(--s)); transform:translateX(-50%);
+    font-size:calc(12px * var(--s)); letter-spacing:.18em; color:rgba(255,180,90,.9);
+    opacity:0; transition:opacity .35s; white-space:nowrap;
+  }
+  body.stale #nodata{ opacity:1; }
+  #jserr{
+    position:absolute; left:16px; top:120px; max-width:70vw; padding:.5em .8em;
+    background:rgba(40,4,4,.88); border:1px solid rgba(255,90,90,.6); border-radius:6px;
+    font:13px/1.4 monospace; color:#ff9a9a; white-space:pre-wrap; display:none;
+  }
+</style>
+</head>
+<body class="stale">
+
+<div id="centerbg"></div>
+<div id="arcwrap"><svg id="arcsvg"></svg></div>
+<div id="center">
+  <div id="cmet"><span class="tp" id="ctp">T-</span><span id="cmetv">00:00:00</span></div>
+  <div id="cmis">FALCON 9 LAUNCH TEST</div>
+</div>
+
+<svg id="top" viewBox="0 0 317 100">
+  <path d="M308.956 0H0V60H239.683C250.252 60 260.512 56.4381 268.807 49.8895L313.913 14.2791C319.869 9.57714 316.544 0 308.956 0Z" fill="#000" fill-opacity=".25"/>
+  <text id="tp" class="t-tp" x="46" y="38">T-</text>
+  <text id="met" class="t-met" x="84.5" y="41.9">00:00:00</text>
+  <text id="mission" class="t-mis" x="45" y="85">FALCON 9 LAUNCH TEST</text>
+</svg>
+
+<svg id="left" class="side off" viewBox="0 844 584 178">
+  <defs>
+    <linearGradient id="gPlL" x1="449.5" y1="932.5" x2="583.5" y2="932.75" gradientUnits="userSpaceOnUse">
+      <stop offset=".477253"/><stop offset="1" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M0 1021.5H583.5L395.111 865.969C385.253 857.831 380.324 853.762 374.804 850.867C369.907 848.298 364.678 846.418 359.267 845.281C353.166 844 346.775 844 333.992 844H0V1021.5Z" fill="url(#gPlL)" fill-opacity=".25"/>
+</svg>
+
+<svg id="right" class="side off" viewBox="1336 844 584 178">
+  <defs>
+    <linearGradient id="gPlR" x1="1470" y1="932.5" x2="1336" y2="932.75" gradientUnits="userSpaceOnUse">
+      <stop offset=".477253"/><stop offset="1" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M1919.5 1021.5H1336L1524.39 865.969C1534.25 857.831 1539.18 853.762 1544.7 850.867C1549.59 848.298 1554.82 846.418 1560.23 845.281C1566.33 844 1572.73 844 1585.51 844H1919.5V1021.5Z" fill="url(#gPlR)" fill-opacity=".25"/>
+</svg>
+
+<div id="nodata">NO DATA FROM KOS</div>
+<div id="jserr"></div>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+const $ = id => document.getElementById(id);
+const SANDBOX = /[?&]sandbox(=|&|$)/.test(location.search);
+
+let S = 1;
+function fit(){
+  S = Math.max(.5, Math.min(2, innerWidth / 1920));
+  document.documentElement.style.setProperty("--s", S.toFixed(4));
+  document.documentElement.style.setProperty("--k", (innerWidth / 2000).toFixed(4));
+}
+fit();
+
+function el(parent, tag, attrs, cls){
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (cls) e.setAttribute("class", cls);
+  parent.appendChild(e);
+  return e;
+}
+
+const RING_R = 65, RING_CY = 932.841, ARC_START = 149, ARC_SPAN = 242;
+const RING_C = 2 * Math.PI * RING_R, RING_LEN = RING_C * ARC_SPAN / 360;
+const RING_D = "M151 862C189.972 862 221 893.752 221 932.841C221 945.806 217.938 957.284 210.686 967.242L210.231 967.93L203 963.143L204.418 961L207.521 963.054C213.409 954.4 216 944.415 216 932.841C216 896.442 187.139 867 151 867C114.861 867 86.0002 896.442 86 932.841C86 944.1 88.8788 954.359 94.209 963L97.2314 961L98.6494 963.143L91.418 967.93L90 965.787L90.0371 965.762C84.1375 956.257 81 945.029 81 932.841C81.0002 893.752 112.028 862 151 862Z";
+let gradN = 0;
+
+function backdrop(svg, g, cx, stopA, stopB){
+  const id = "gBg" + (gradN++);
+  const lg = el(svg.querySelector("defs"), "linearGradient",
+    { id, x1:cx, y1:856, x2:cx, y2:1007, gradientUnits:"userSpaceOnUse" });
+  el(lg, "stop", { offset:stopA });
+  el(lg, "stop", { offset:stopB, "stop-opacity":0 });
+  el(g, "circle", { cx, cy:931.5, r:75.5, fill:`url(#${id})`, "fill-opacity":.25 });
+}
+
+function ring(svg, g, cx){
+  const id = "gRm" + (gradN++), shift = `translate(${cx - 151} 0)`;
+  const m = el(svg.querySelector("defs"), "mask",
+    { id, maskUnits:"userSpaceOnUse", x:cx - 95, y:850, width:190, height:130 });
+  el(m, "path", { d:RING_D, transform:shift, fill:"#fff" });
+  el(g, "path", { d:RING_D, transform:shift }, "trk");
+  const mg = el(g, "g", { mask:`url(#${id})` });
+  const fg = el(mg, "circle", { cx, cy:RING_CY, r:RING_R, transform:`rotate(${ARC_START} ${cx} ${RING_CY})`,
+    "stroke-dasharray":`${RING_LEN} ${RING_C}`, "stroke-dashoffset":RING_LEN }, "val");
+  return { fg, sweepUntil:0 };
+}
+
+function gauge(svg, bx, cap, unit, hidden){
+  const g = el(svg, "g", {}, "wgt" + (hidden ? " w-off" : ""));
+  backdrop(svg, g, bx, .473016, .830076);
+  const r = ring(svg, g, bx + .5);
+  el(g, "text", { x:bx, y:905, "text-anchor":"middle" }, "g-cap").textContent = cap;
+  r.val = el(g, "text", { x:bx, y:943, "text-anchor":"middle" }, "g-val");
+  r.val.textContent = "—";
+  el(g, "text", { x:bx, y:966, "text-anchor":"middle" }, "g-unit").textContent = unit;
+  r.grp = g;
+  return r;
+}
+
+function engines(svg, bx){
+  const g = el(svg, "g", {}, "wgt");
+  backdrop(svg, g, bx, .557692, .923077);
+  const r = ring(svg, g, bx + .5);
+  el(g, "circle", { cx:bx, cy:932, r:57.5, fill:"none", stroke:"#fff", "stroke-opacity":.5 });
+  r.dots = [el(g, "circle", { cx:bx, cy:932, r:11 }, "eng")];
+  for (let i = 0; i < 8; i++){
+    const a = (22.5 + 45 * i) * Math.PI / 180;
+    r.dots.push(el(g, "circle", { cx:bx + Math.sin(a) * 35.22, cy:933 - Math.cos(a) * 35.22, r:11 }, "eng"));
+  }
+  r.grp = g;
+  return r;
+}
+
+const gSpd   = gauge($("left"), 150.5, "SPEED", "KM/H");
+const gAlt   = gauge($("left"), 316.5, "ALTITUDE", "KM");
+const gG     = gauge($("right"), 1603, "G-FORCE", "G");
+const gEng   = engines($("right"), 1769);
+const gS2Spd = gauge($("right"), 1603, "SPEED", "KM/H", true);
+const gS2Alt = gauge($("right"), 1769, "ALTITUDE", "KM", true);
+el($("left"),  "text", { x:233.5, y:1003, "text-anchor":"middle" }, "g-cap lbl").textContent = "STAGE 1";
+el($("right"), "text", { x:1686,  y:1003, "text-anchor":"middle" }, "g-cap lbl lbl-r").textContent = "STAGE 2";
+
+const S1_SPD_MAX = 9000, S1_ALT_MAX = 130, S2_SPD_MAX = 16000, S2_ALT_MAX = 200;
+
+function setRing(r, frac){
+  const target = (RING_LEN * (1 - Math.max(0, Math.min(1, frac || 0)))).toFixed(2);
+  const now = performance.now();
+  if (r.sweep){
+    r.sweep = false;
+    r.sweepUntil = now + 1500;
+    r.fg.style.transition = "none";
+    r.fg.setAttribute("stroke-dashoffset", RING_LEN.toFixed(2));
+    void r.fg.getBoundingClientRect();
+    setTimeout(() => {
+      r.fg.style.transition = "stroke-dashoffset 1050ms cubic-bezier(.16,.82,.2,1)";
+      r.fg.setAttribute("stroke-dashoffset", r.target);
+    }, 400);
+  } else if (now >= r.sweepUntil){
+    r.fg.style.transition = "";
+    r.fg.setAttribute("stroke-dashoffset", target);
+  }
+  r.target = target;
+}
+function setGauge(r, value, frac, digits){
+  const t = value === null ? "—" : value.toFixed(digits);
+  if (r.val.textContent !== t) r.val.textContent = t;
+  setRing(r, frac);
+}
+
+const ENG_ORDER = [0, 1, 5, 3, 7, 2, 6, 4, 8];
+function paintEngines(mask, n){
+  const on = new Array(9).fill(false);
+  if (typeof mask === "string" && mask.length >= 9){
+    for (let i = 0; i < 9; i++) on[i] = mask[i] === "1";
+  } else {
+    for (let i = 0; i < Math.min(9, n | 0); i++) on[ENG_ORDER[i]] = true;
+  }
+  gEng.dots.forEach((d, i) => d.classList.toggle("on", on[i]));
+}
+
+const HIDE_MS = 430;
+let sepOn = false, swapTimer = 0;
+function setSep(on, instant){
+  sepOn = on;
+  document.body.classList.toggle("sep", on);
+  const hide = on ? [gG, gEng] : [gS2Spd, gS2Alt];
+  const show = on ? [gS2Spd, gS2Alt] : [gG, gEng];
+  clearTimeout(swapTimer);
+  hide.forEach(r => r.grp.classList.add("w-off"));
+  const reveal = () => show.forEach(r => { r.grp.classList.remove("w-off"); r.sweep = true; });
+  if (instant) reveal(); else swapTimer = setTimeout(reveal, HIDE_MS);
+}
+
+function Chan(){ return { prev:null, next:null, tNext:0, alive:0 }; }
+const B = Chan();
+function push(ch, d){
+  ch.prev = ch.next ?? d; ch.next = d;
+  ch.tNext = ch.alive = performance.now();
+}
+function lerp(ch, key){
+  if (!ch.next) return null;
+  const b = ch.next[key]; if (b === undefined) return null;
+  const a = ch.prev?.[key]; if (a === undefined) return b;
+  return a + (b - a) * Math.min(1, (performance.now() - ch.tNext) / 100);
+}
+const fresh = ch => ch.next && (performance.now() - ch.alive) < 2500;
+
+if (window.chrome && window.chrome.webview){
+  window.chrome.webview.addEventListener("message", e => {
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.kind !== "telemetry" || m.who === "ship" || !m.data) return;
+    if (m.data.veh !== "f9" && !SANDBOX){ location.replace("index.html"); return; }
+    push(B, m.data);
+  });
+}
+
+function hms(s){
+  s = Math.max(0, Math.floor(s));
+  const p = v => String(v).padStart(2, "0");
+  return `${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
+}
+
+// Время вехи: факт ev* -> прогноз kOS eta* (формулы в f9s1.ks, F9TelEta) ->
+// шаблон режима tpl[mode] со сдвигом по последнему факту. Нет шаблона для
+// режима - вехи в этом полёте нет (boostback только RTLS, посадки нет у exp).
+// Шаблоны - по логам 21.09: RTLS entry 279 / lburn 336 / land 367,
+// ASDS 336-342 / 410 / 431.
+// SECO (own) - событие S2, в цепочку бустера не входит: в RTLS оно позже entry.
+const MS = [
+  { id:"liftoff", label:"Liftoff",      tpl:{ rtls:0,   asds:0,   splashdown:0,   exp:0 } },
+  { id:"maxq",    label:"Max Q",        ev:"evmaxq",  eta:"etamaxq",
+    tpl:{ rtls:54,  asds:54,  splashdown:54,  exp:54 } },
+  { id:"sep",     label:"Stage Sep",    ev:"evsep",   eta:"etasep",
+    tpl:{ rtls:121, asds:127, splashdown:131, exp:153 } },
+  { id:"bb",      label:"Boostback Burn", ev:"evbb",    eta:"etabb",
+    tpl:{ rtls:155 } },
+  { id:"seco",    label:"SECO",         ev:"evseco",  eta:"etaseco", own:true, after:"sep",
+    tpl:{ rtls:371, asds:377, splashdown:381, exp:403 } },
+  { id:"entry",   label:"Entry Burn",   ev:"eventry", eta:"etaentry",
+    tpl:{ rtls:279, asds:336, splashdown:336 } },
+  { id:"lburn",   label:"Landing Burn", ev:"evlburn", eta:"etalburn",
+    tpl:{ rtls:336, asds:410, splashdown:410 } }
+];
+
+function msMode(){
+  const md = B.next && B.next.mode;
+  return (typeof md === "string" && md) ? md : "rtls";
+}
+function msNum(key){
+  const v = key && B.next ? B.next[key] : undefined;
+  return (typeof v === "number" && v > 0) ? v : null;
+}
+function msFact(m){ return msNum(m.ev); }
+function msEta(m){ return msNum(m.eta); }
+function msTpl(m, mode){
+  return m.tpl && typeof m.tpl[mode] === "number" ? m.tpl[mode] : null;
+}
+
+let VB_W = 980, VB_H = 150, CX = VB_W / 2, TOP_Y = 26, HALF_W = VB_W / 2;
+const SPAN_SEC = 320, CURVE_LO = 10000, CURVE_HI = 80000;
+let sag = 0, curve = 0, BELOW = 0, VIS_HALF = 0, FREE_HALF = 0;
+
+function curveForAlt(alt){
+  const t = Math.max(0, Math.min(1, (alt - CURVE_LO) / (CURVE_HI - CURVE_LO)));
+  return t * t * (3 - 2 * t);
+}
+function exitXFor(c){
+  const want = FREE_HALF * (1.72 - 0.47 * c) + HALF_W * 2.5 * Math.pow(1 - c, 3);
+  const fits = FREE_HALF * (0.92 + 0.08 * c) * 0.97;
+  const k = Math.max(0, Math.min(1, (c - 0.45) / 0.25));
+  return Math.min(want, want * (1 - k) + fits * k);
+}
+function screenBottomY(){ return VB_H + Math.max(0, BELOW - 40); }
+function arcRadiusFor(c){
+  const d = Math.max(1, screenBottomY() - TOP_Y), x = exitXFor(c);
+  return (x * x + d * d) / (2 * d);
+}
+function sagForAlt(alt){
+  const c = curveForAlt(alt);
+  if (c < 0.02) return 0;
+  const R = arcRadiusFor(c), w = visHalfFor(c);
+  return R - Math.sqrt(Math.max(0, R * R - w * w));
+}
+function sagRadius(sg){ const w = VIS_HALF || HALF_W; return (w * w + sg * sg) / (2 * sg); }
+function ptAtDX(dx){
+  if (sag < 0.6) return { x: CX + dx, y: TOP_Y, deg: 0 };
+  const R = sagRadius(sag);
+  const y = TOP_Y + R - Math.sqrt(Math.max(0, R * R - dx * dx));
+  const deg = Math.asin(Math.max(-1, Math.min(1, dx / R))) * 180 / Math.PI;
+  return { x: CX + dx, y, deg };
+}
+function earthD(R, dy){
+  const off = dy || 0;
+  const yAt = dx => Math.min(VB_H + BELOW, TOP_Y + off + R - Math.sqrt(Math.max(0, R * R - dx * dx)));
+  const W = VIS_HALF || HALF_W, BOT = VB_H + BELOW, N = 64, pts = [];
+  for (let i = 0; i <= N; i++){
+    const dx = -W + (2 * W) * (i / N);
+    pts.push(`${(CX + dx).toFixed(1)} ${yAt(dx).toFixed(1)}`);
+  }
+  return `M ${pts.join(" L ")} L ${(CX + W).toFixed(1)} ${BOT} L ${(CX - W).toFixed(1)} ${BOT} Z`;
+}
+function arcDR(dxFrom, dxTo, R, dy){
+  const off = dy || 0;
+  const yAt = dx => TOP_Y + off + R - Math.sqrt(Math.max(0, R * R - dx * dx));
+  const a = { x: CX + dxFrom, y: yAt(dxFrom) }, b = { x: CX + dxTo, y: yAt(dxTo) };
+  return `M ${a.x.toFixed(1)} ${a.y.toFixed(1)} A ${R.toFixed(1)} ${R.toFixed(1)} 0 0 1 ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+}
+function arcD(dxFrom, dxTo){
+  const g = sag;
+  const yAt = dx => {
+    if (g < 0.6) return TOP_Y;
+    const R = sagRadius(g);
+    return TOP_Y + R - Math.sqrt(Math.max(0, R * R - dx * dx));
+  };
+  const a = { x: CX + dxFrom, y: yAt(dxFrom) }, b = { x: CX + dxTo, y: yAt(dxTo) };
+  if (g < 0.6) return `M ${a.x.toFixed(1)} ${a.y.toFixed(1)} L ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+  const R = sagRadius(g).toFixed(1);
+  return `M ${a.x.toFixed(1)} ${a.y.toFixed(1)} A ${R} ${R} 0 0 1 ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+}
+
+function measureFree(){
+  const leftEdge = 392 * S, rightEdge = innerWidth - (1920 - 1527.5) * S;
+  const lim = Math.min(CX - leftEdge, rightEdge - CX) - 14;
+  FREE_HALF = Math.max(160, lim * 0.72);
+}
+function visHalfFor(c){
+  const free = FREE_HALF * (0.92 + 0.08 * c);
+  if (c < 0.05) return free;
+  return Math.min(free, Math.max(free * 0.5, exitXFor(c) * 1.02), arcRadiusFor(c) * 0.985);
+}
+function msHalf(){ return FREE_HALF * 0.92; }
+
+const arcSvg = $("arcsvg");
+const msNodes = {};
+let earthPath, arcInner, arcLit, arcDim, tick;
+
+function fitArc(){
+  const box = $("arcwrap");
+  const w = box.clientWidth, h = box.clientHeight;
+  if (!w || !h) return;
+  VB_W = w; VB_H = h; CX = w / 2; HALF_W = w / 2;
+  TOP_Y = Math.round(h * 0.12);
+  BELOW = Math.max(0, innerHeight - box.getBoundingClientRect().bottom) + 40;
+  measureFree();
+  VIS_HALF = visHalfFor(curve);
+  arcSvg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  for (const id of ["edgefade", "earthfade"]){
+    const m = arcSvg.querySelector("#" + id);
+    if (!m) continue;
+    m.setAttribute("x", (-0.1 * w).toFixed(0)); m.setAttribute("y", (-h).toFixed(0));
+    m.setAttribute("width", (1.2 * w).toFixed(0)); m.setAttribute("height", (3 * h).toFixed(0));
+  }
+}
+addEventListener("resize", () => { fit(); fitArc(); });
+
+(function buildWheel(){
+  arcSvg.innerHTML =
+    `<defs>
+       <linearGradient id="fadegrad" x1="0" y1="0" x2="1" y2="0">
+         <stop id="f0" offset="0" stop-color="#000"/>
+         <stop id="f1" offset="0.14" stop-color="#fff"/>
+         <stop id="f2" offset="0.86" stop-color="#fff"/>
+         <stop id="f3" offset="1" stop-color="#000"/>
+       </linearGradient>
+       <mask id="edgefade" maskUnits="userSpaceOnUse"><rect id="fadrect" fill="url(#fadegrad)"/></mask>
+       <linearGradient id="earthgrad" x1="0" y1="0" x2="1" y2="0">
+         <stop offset="0" stop-color="#000"/>
+         <stop offset="0.34" stop-color="#fff"/>
+         <stop offset="0.66" stop-color="#fff"/>
+         <stop offset="1" stop-color="#000"/>
+       </linearGradient>
+       <mask id="earthfade" maskUnits="userSpaceOnUse"><rect id="earthrect" fill="url(#earthgrad)"/></mask>
+       <linearGradient id="earthfill" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100">
+         <stop offset="0" stop-color="rgba(6,11,18,.28)"/>
+         <stop offset=".45" stop-color="rgba(6,11,18,.42)"/>
+         <stop offset="1" stop-color="rgba(6,11,18,.52)"/>
+       </linearGradient>
+     </defs>
+     <g mask="url(#earthfade)"><path id="earth" fill="url(#earthfill)" stroke="none" opacity="0"></path></g>
+     <g mask="url(#edgefade)">
+       <path id="arcinner" class="arc-inner" opacity="0"></path>
+       <path id="arclit" class="arc-fg"></path>
+       <path id="arcdim" class="arc-bg"></path>
+     </g>`;
+  earthPath = arcSvg.querySelector("#earth");
+  arcInner = arcSvg.querySelector("#arcinner");
+  arcLit = arcSvg.querySelector("#arclit");
+  arcDim = arcSvg.querySelector("#arcdim");
+  for (const m of MS){
+    const g = el(arcSvg, "g", { id:"ms-" + m.id });
+    const dot = el(g, "circle", { cx:0, cy:0, r:5.6 }, "ms-dot");
+    const core = el(g, "circle", { cx:0, cy:0, r:2.1 }, "ms-core");
+    const txt = el(g, "text", { x:0, y:-15, "text-anchor":"middle" }, "ms-txt");
+    txt.textContent = m.label;
+    msNodes[m.id] = { g, dot, core, txt };
+  }
+  tick = el(arcSvg, "line", { id:"nowtick" });
+  fitArc();
+})();
+
+const MS_LEVELS = [-15, 22, -38, 45, -61];
+// Зазор между основной и внутренней дугой (0 - внутренней нет). Подпись
+// первого нижнего уровня ставится по центру этого зазора.
+let INNER_DY = 0;
+
+function paintArc(met, alt){
+  if (!isFinite(met)) met = 0;
+  if (!isFinite(alt)) alt = 0;
+  curve = curveForAlt(alt);
+  sag = sagForAlt(alt);
+  if (!FREE_HALF) fitArc();
+  const wb = $("arcwrap").getBoundingClientRect();
+  if (wb.height) BELOW = Math.max(0, innerHeight - wb.bottom) + 40;
+  VIS_HALF = visHalfFor(curve);
+
+  arcLit.setAttribute("d", arcD(-VIS_HALF, 0));
+  arcDim.setAttribute("d", arcD(0, VIS_HALF));
+
+  const over = (exitXFor(curve) - FREE_HALF) / Math.max(1, FREE_HALF);
+  const exiting = Math.max(0, Math.min(1, (TOP_Y + sag - (screenBottomY() - 26)) / 26));
+  const fadeFrac = (0.07 + 0.13 * Math.max(0, Math.min(1, over * 2))) * (1 - exiting) + 0.012 * exiting;
+  arcSvg.querySelector("#f1").setAttribute("offset", fadeFrac.toFixed(3));
+  arcSvg.querySelector("#f2").setAttribute("offset", (1 - fadeFrac).toFixed(3));
+  for (const id of ["#fadrect", "#earthrect"]){
+    const r = arcSvg.querySelector(id);
+    r.setAttribute("x", (CX - VIS_HALF).toFixed(1));
+    r.setAttribute("width", (2 * VIS_HALF).toFixed(1));
+    r.setAttribute("y", -200); r.setAttribute("height", VB_H + BELOW + 200);
+  }
+  const eg = arcSvg.querySelector("#earthfill");
+  eg.setAttribute("y1", TOP_Y);
+  eg.setAttribute("y2", VB_H + BELOW * 0.5);
+
+  if (curve < 0.02){
+    INNER_DY = 0;
+    earthPath.setAttribute("opacity", 0);
+    arcInner.setAttribute("opacity", 0);
+  } else {
+    const k = Math.min(1, curve / 0.75);
+    const dy2 = Math.max(8, VB_H * 0.13);
+    INNER_DY = dy2;
+    const R2 = Math.max(20, sagRadius(sag) - dy2);
+    const w2 = Math.min(VIS_HALF, R2 * 0.999);
+    arcInner.setAttribute("d", arcDR(-w2, w2, R2, dy2));
+    arcInner.setAttribute("opacity", (k * 0.75).toFixed(3));
+    earthPath.setAttribute("d", earthD(R2, dy2));
+    earthPath.setAttribute("opacity", k.toFixed(3));
+  }
+
+  const top = ptAtDX(0);
+  tick.setAttribute("x1", top.x); tick.setAttribute("x2", top.x);
+  tick.setAttribute("y1", top.y - 10); tick.setAttribute("y2", top.y + 6);
+
+  const mode = msMode();
+  let shift = 0, laterDone = false;
+  const st = {};
+  for (const m of MS){
+    const f = msFact(m), e = msEta(m), tp = msTpl(m, mode);
+    const at = f !== null ? f : e;
+    if (at !== null && tp !== null && !m.own) shift = at - tp;
+  }
+  for (let i = MS.length - 1; i >= 0; i--){
+    const m = MS[i];
+    const tp = msTpl(m, mode);
+    if (tp === null){ st[m.id] = { hidden:true }; continue; }
+    if (!m.ev){ st[m.id] = { t:tp, done: met >= tp }; continue; }
+    const f = msFact(m);
+    if (f !== null){ st[m.id] = { t:f, done:true }; if (!m.own) laterDone = true; continue; }
+    if (laterDone && !m.own){ st[m.id] = { hidden:true }; continue; }
+    let t = msEta(m);
+    if (t === null){
+      const am = m.after ? MS.find(x => x.id === m.after) : null;
+      const af = am ? msFact(am) : null;
+      const at = am ? msTpl(am, mode) : null;
+      t = (af !== null && at !== null) ? af + (tp - at) : tp + shift;
+    }
+    st[m.id] = { t: Math.max(t, met), done:false };
+  }
+
+  const MH = msHalf(), shown = [];
+  for (const m of MS){
+    const s = st[m.id], n = msNodes[m.id];
+    const lb = (m.labelBy && m.labelBy[mode]) || m.label;
+    if (n.txt.textContent !== lb) n.txt.textContent = lb;
+    const dx = s.hidden ? 1e9 : ((s.t - met) / SPAN_SEC) * (2 * MH);
+    if (Math.abs(dx) > MH + 6){ n.g.setAttribute("opacity", 0); continue; }
+    const edge = Math.max(0, Math.min(1, (MH - Math.abs(dx)) / 70));
+    n.g.setAttribute("opacity", edge.toFixed(2));
+    const p = ptAtDX(dx);
+    n.g.setAttribute("transform", `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) rotate(${p.deg.toFixed(2)})`);
+    const dn = s.done ? " done" : "";
+    n.dot.setAttribute("class", "ms-dot" + dn);
+    n.core.setAttribute("class", "ms-core" + dn);
+    n.txt.setAttribute("class", "ms-txt" + dn);
+    let w = 0;
+    try { w = n.txt.getComputedTextLength(); } catch { w = 0; }
+    shown.push({ n, x:p.x, half:w / 2 + 6 });
+  }
+  shown.sort((a, b) => a.x - b.x);
+  const lastAt = [];
+  for (const it of shown){
+    let lvl = 0;
+    while (lvl < MS_LEVELS.length - 1 && lastAt[lvl] !== undefined && it.x - it.half < lastAt[lvl]) lvl++;
+    lastAt[lvl] = it.x + it.half;
+    if (lvl === 1 && INNER_DY > 0){
+      it.n.txt.setAttribute("y", (INNER_DY / 2).toFixed(1));
+      it.n.txt.setAttribute("dominant-baseline", "central");
+    } else {
+      it.n.txt.setAttribute("y", MS_LEVELS[lvl]);
+      it.n.txt.removeAttribute("dominant-baseline");
+    }
+  }
+}
+
+function setText(id, t){ const e = $(id); if (e.textContent !== t) e.textContent = t; }
+const num = v => typeof v === "number" && v >= 0;
+
+let shown = false, launched = false;
+function render(){
+  requestAnimationFrame(renderSafe);
+  const ok = fresh(B);
+  document.body.classList.toggle("stale", !ok);
+  if (!ok) return;
+  const d = B.next;
+  const sep = (d.sep === true || (typeof d.evsep === "number" && d.evsep > 0)) && d.s2orb !== true;
+
+  if (!shown){
+    shown = true;
+    for (const id of ["left", "right"]) $(id).classList.remove("off");
+    setSep(sep, true);
+    for (const r of [gSpd, gAlt]) r.sweep = true;
+  } else if (sep !== sepOn) setSep(sep, false);
+
+  const spd = Math.max(0, lerp(B, "spd") ?? 0) * 3.6, alt = Math.max(0, (lerp(B, "alt") ?? 0) / 1000);
+  setGauge(gSpd, spd, spd / S1_SPD_MAX, 0);
+  setGauge(gAlt, alt, alt / S1_ALT_MAX, 1);
+  const g = d.g ?? null;
+  setGauge(gG, g, (g ?? 0) / 6, 1);
+  paintEngines(d.engmask, d.engact ?? 0);
+  setRing(gEng, Math.min(d.lfpct ?? 0, d.oxpct ?? d.lfpct ?? 0) / 100);
+
+  const s2spd = num(d.s2spd) ? Math.max(0, lerp(B, "s2spd") ?? d.s2spd) * 3.6 : null;
+  const s2alt = num(d.s2alt) ? Math.max(0, lerp(B, "s2alt") ?? d.s2alt) / 1000 : null;
+  setGauge(gS2Spd, s2spd, (s2spd ?? 0) / S2_SPD_MAX, 0);
+  setGauge(gS2Alt, s2alt, (s2alt ?? 0) / S2_ALT_MAX, 1);
+
+  const met = lerp(B, "met") ?? 0;
+  if (met >= -10) launched = true; else if (met < -11) launched = false;
+  document.body.classList.toggle("launched-ui", launched);
+
+  const tp = met < 0 ? "T-" : "T+", hm = hms(Math.abs(met));
+  const mis = String(d.mission || "Falcon 9 Launch Test").toUpperCase();
+  setText("tp", tp); setText("met", hm); setText("mission", mis);
+  setText("ctp", tp); setText("cmetv", hm); setText("cmis", mis);
+
+  if (launched) paintArc(met, Math.max(d.alt ?? 0, num(d.s2alt) ? d.s2alt : 0));
+}
+function renderSafe(){
+  try { render(); $("jserr").style.display = "none"; }
+  catch (e){
+    console.error(e);
+    $("jserr").textContent = "OVERLAY ERROR: " + (e && e.message || e);
+    $("jserr").style.display = "block";
+    requestAnimationFrame(renderSafe);
+  }
+}
+requestAnimationFrame(renderSafe);
+
+if (SANDBOX) (function(){
+  document.body.style.cursor = "default";
+  document.body.style.background = "#4a5a6e";
+  const box = document.createElement("div");
+  box.style.cssText = "position:fixed;right:0;top:0;width:280px;max-height:70vh;overflow:auto;" +
+    "background:#10141a;color:#cfd8e3;font:12px system-ui;padding:10px;z-index:9;opacity:.95";
+  const st = { met:-20, spd:0, alt:0, g:1, lfpct:100, s2spd:2000, s2alt:60000, eng:"000000000", live:true, sep:false, mode:"rtls" };
+  const row = (k, min, max, step) => {
+    const d = document.createElement("div");
+    d.innerHTML = `<label>${k} <b id="sv-${k}">${st[k]}</b></label><br>` +
+      `<input type="range" id="si-${k}" min="${min}" max="${max}" step="${step}" value="${st[k]}" style="width:100%">`;
+    d.querySelector("input").oninput = e => { st[k] = +e.target.value; $("sv-" + k).textContent = st[k]; };
+    box.appendChild(d);
+  };
+  row("met", -60, 600, 1); row("spd", 0, 2500, 1); row("alt", 0, 130000, 100);
+  row("g", 0, 6, .1); row("lfpct", 0, 100, 1);
+  row("s2spd", 0, 8000, 10); row("s2alt", 0, 250000, 500);
+  const eb = document.createElement("div");
+  eb.innerHTML = "engines: " + [...Array(9)].map((_, i) =>
+    `<label><input type="checkbox" data-i="${i}">${i}</label>`).join(" ") +
+    `<br><label><input type="checkbox" id="sv-live" checked> данные идут</label>` +
+    `<br><label><input type="checkbox" id="sv-sep"> sep (или met ≥ 90)</label>` +
+    `<br><label>режим <select id="sv-mode"><option>rtls</option><option>asds</option>` +
+    `<option>splashdown</option><option>exp</option></select></label>`;
+  eb.onchange = e => {
+    const i = e.target.dataset.i;
+    if (i !== undefined){ const a = st.eng.split(""); a[i] = e.target.checked ? "1" : "0"; st.eng = a.join(""); }
+    st.live = $("sv-live").checked;
+    st.sep = $("sv-sep").checked;
+    st.mode = $("sv-mode").value;
+  };
+  box.appendChild(eb);
+  document.body.appendChild(box);
+  window.sbSet = (k, v) => { st[k] = v; const i = $("si-" + k); if (i){ i.value = v; $("sv-" + k).textContent = v; } };
+  setInterval(() => {
+    if (!st.live) return;
+    const d = { veh:"f9", met:st.met, spd:st.spd, alt:st.alt, g:st.g, lfpct:st.lfpct, oxpct:st.lfpct,
+                engmask:st.eng, mission:"Falcon 9 Launch Test", mode:st.mode };
+    for (const m of MS){
+      const tp = msTpl(m, st.mode);
+      if (m.ev) d[m.ev] = (tp !== null && st.met >= tp) ? tp : -1;
+    }
+    if (st.sep || st.met >= 90){ d.sep = true; d.s2spd = st.s2spd; d.s2alt = st.s2alt; }
+    push(B, d);
+  }, 100);
+})();
+</script>
+</body>
+</html>
