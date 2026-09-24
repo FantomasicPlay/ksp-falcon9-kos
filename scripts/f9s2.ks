@@ -1,57 +1,16 @@
-﻿// =====================================================================
-// f9s2.ks - вторая ступень Falcon 9: выход на орбиту.
-//
-// Запускать с компьютера ВТОРОЙ ступени (он в TE.F9.Fairing.Adapter).
-// Скрипт можно запустить ещё на столе - он просто ждёт разделения и
-// ничего не трогает, пока первая ступень работает.
-//
-//   RUN f9s2.        или AG9 через boot-файл
-//
-// Первой ступенью занимается f9s1.ks - это отдельный компьютер и отдельная
-// задача. Файлы разделены намеренно: у ступеней разные цели, разное железо
-// и ломаются они по-разному.
-//
-// ВАЖНО: KSP считает физику только для активного судна и всего, что ближе
-// 22 км, а FMRS на Falcon 9 не работает - отыграть вторую ступень задним
-// числом не выйдет. Значит после разделения приходится выбирать: та ступень,
-// на которой ты не находишься, за 22 км выгрузится и её скрипт замрёт до
-// возвращения. Скрипты это переживают - оба умеют подхватываться с середины,
-// - но одновременно довести обе ступени до цели нельзя.
-// =====================================================================
-
+﻿
 run once f9lib.
 
-// ---------------------------------------------------------------------
-// Настройки выведения. Высоты в метрах, множитель F9Scale приходит из
-// f9lib по радиусу планеты - одна и та же ракета летает в стоке, KSRSS и
-// RSS, и целевая орбита там отличается в разы.
-// ---------------------------------------------------------------------
-set F9Azimuth to 90.                 // курс, тот же что у первой ступени
-// Цель - круговые 125 км, как просил Егор. Задана числом, а не надбавкой
-// к атмосфере: прошлый вариант "граница + 70" давал в Sol quarter 150 x 145
-// и зависел от сборки, а круг на 125 нужен конкретный.
-//
-// Проверка на вменяемость всё же нужна: в стоке атмосфера кончается на 14
-// км, там 125 - нормальная орбита, а вот в сборке с атмосферой выше 120
-// цель оказалась бы под ней. Тогда поднимаем до границы плюс 20 км.
-set F9TargetAp to 125000.                   // целевой апогей
+set F9Azimuth to 90.
+set F9TargetAp to 125000.
 if F9TargetAp < body:atm:height + 20000 {
     set F9TargetAp to body:atm:height + 20000.
 }
-// Перигей целим на 2 км ниже апогея, а не в него. Ровно в апогей нельзя:
-// пока двигатель работает, перигей поднимается, но одновременно растёт и
-// апогей, и условие "перигей >= апогея" не наступит никогда - ступень
-// сожгла бы всё топливо. Два километра на 125 - это эксцентриситет 0.0001,
-// орбита круглая по любому счёту.
 set F9TargetPe to F9TargetAp - 2000.
 set F9InsAlt to F9TargetAp.
 set F9GT0 to 0.
 set F9GMode to "rtls".
 set F9GIncl to abs(ship:latitude).
-// Профиль выведения. До F9DirectMax км апогея - одним участком, как было.
-// Выше - как настоящий Falcon: SECO-1 на круговую парковку F9ParkAlt (или
-// ниже, если целевой перигей ниже), затем узлами подъём апогея и перигея
-// (F9S2Profile после SECO). Сход S2 - по галочке, после отделения груза.
 set F9DirectMax to 400.
 set F9ParkAlt to 200.
 set F9DeoWait to 300.
@@ -59,9 +18,6 @@ set F9Prof to "direct".
 set F9FinAp to 0.
 set F9FinPe to 0.
 
-// Парковка только когда сразу выйти нельзя: перигей выше F9DirectMax
-// (125x8946 выводится сразу, SECO в перигее), и только без списка орбит -
-// со списком профиль задаёт он.
 function F9ParkKm {
     parameter ap, pe.
     if (defined F9Ms) and F9Ms:length > 0 return -1.
@@ -89,22 +45,10 @@ function F9S2ApplyCfg {
     }
 }
 F9S2ApplyCfg(F9CfgRead()).
-// Обтекатель сбрасываем по ВЫСОТЕ - от 60 км. Раньше решал напор (0.002
-// атм), а высота 40 * F9Scale была лишь нижней границей; порог по напору
-// наступал заметно раньше шестидесяти, и створки уходили низко.
-//
-// Напор оставлен вторым условием, но уже мягким страховочным: если на 60 км
-// воздух почему-то ещё плотный, ждём, пока он упадёт.
-set F9FairingAlt to 60000.           // м, высота сброса обтекателя
-set F9FairingQ to 0.002.             // страховка по напору
+set F9FairingAlt to 60000.
+set F9FairingQ to 0.002.
 
-// ---------------------------------------------------------------------
-// Железо второй ступени. Своё, отдельное от f9lib: там всё про первую.
-// ---------------------------------------------------------------------
 
-// Октавеб - признак того, что первая ступень ещё с нами. Проверяем
-// динамически, а не один раз: весь смысл скрипта в том, чтобы дождаться
-// момента, когда его не станет.
 function F9S1Attached {
     for p in ship:parts {
         if p:hasmodule("ModuleTundraEngineSwitch") return true.
@@ -112,9 +56,6 @@ function F9S1Attached {
     return false.
 }
 
-// Обтекатель - две половинки, у каждой ModuleDecouple. Ищем по имени, а
-// не по модулю: ModuleDecouple есть и у межступенчатого отсека, и спутать
-// их означало бы разделить ступени вместо сброса створок.
 set F9Fairings to list().
 for p in ship:partsnamedpattern("F9[._](Extended[._])?Fairing") {
     if p:hasmodule("ModuleDecouple") and not p:name:contains("Adapter") and
@@ -133,21 +74,6 @@ function F9FairingJettison {
     return n.
 }
 
-// Двигатель второй ступени. После разделения он остаётся единственным.
-// Двигатель второй ступени.
-//
-// Правило "первый движок, в имени которого нет S1" работало, пока наверху
-// стоял обтекатель. С Crew Dragon оно ЛОМАЕТСЯ: у TE_18_DRAGONV2_POD есть
-// свой ModuleEnginesFX - это SuperDraco системы аварийного спасения, 228 кН
-// на монотопливе. В имени детали "S1" нет, list engines её возвращает, и
-// какая из двух попадётся первой, зависит от порядка обхода дерева. То есть
-// activate мог зажечь двигатели САС вместо Merlin Vacuum.
-//
-// Ищем по имени детали: у всех вариантов второй ступени оно содержит и S2,
-// и Engine (TE.19.F9.S2.Engine, TE.19.F910.S2.Engine, TE.F1.S2.Engine).
-//
-// Запасное правило - на случай нестандартной сборки: движок, который НЕ
-// работает на монотопливе. Это отсекает и SuperDraco, и Draco.
 function F9S2Engine {
     list engines in es.
     for e in es {
@@ -164,8 +90,6 @@ function F9S2Engine {
     return "false".
 }
 
-// Всё, что видит list engines - для проверки на столе. Если в списке
-// окажется несколько кандидатов, выбранный виден отдельной строкой.
 function F9EngineList {
     list engines in es.
     local out is "".
@@ -177,24 +101,7 @@ function F9EngineList {
     return out.
 }
 
-// ---------------------------------------------------------------------
-// Проверки.
-// ---------------------------------------------------------------------
 clearscreen.
-// ---------------------------------------------------------------------
-// Дальность физики.
-//
-// KSP считает физику только для того, что рядом с активным судном; всё
-// дальше "пакуется" и летит по рельсам. А смотреть после разделения надо на
-// ПЕРВУЮ ступень - её сажаем. Вторая при этом уходит вперёд и вверх, и на
-// штатных 22 км её перестаёт считать физика ровно посреди выведения.
-//
-// Starship и Superheavy решают это через vessel:loaddistance - каждый
-// поднимает СВОИ дистанции, чтобы не выпасть из симуляции, пока игрок
-// смотрит на соседа (starship.ks, функция SetLoadDistances). Делаю так же.
-//
-// Порядок как у них: сначала unload/load, потом pack/unpack, с паузой между
-// присвоениями - KSP применяет их не мгновенно.
 function F9SetLoadDist {
     parameter d.
 
@@ -238,9 +145,6 @@ function F9SetLoadDist {
     set ship:loaddistance:orbit:pack to d - 2500.
     set ship:loaddistance:orbit:unpack to d - 10000.
     wait 0.001.
-    // Четвёртый диапазон - PRELAUNCH, с другими отступами (250/500/750).
-    // Ровно как в starship.ks: SetLoadDistances выставляет четыре диапазона,
-    // а не три. У нас его не было - это и было единственное расхождение.
     set ship:loaddistance:prelaunch:unload to d.
     set ship:loaddistance:prelaunch:load to d - 250.
     wait 0.001.
@@ -249,17 +153,10 @@ function F9SetLoadDist {
     wait 0.001.
 }
 
-// 500 км. Хватает на всё выведение до круговых 125: дальше этого вторая
-// ступень от места старта за время работы двигателя не уходит. Больше
-// ставить незачем - каждый лишний километр это физика, которую машина
-// считает впустую.
 set F9RnEccOk to 0.01.
 set F9RnIncOk to 0.15.
 set F9RnIncWarn to 1.
 set F9RnDir to V(0, 0, 1).
-// Финальный подход на RCS: дальше F9RnAppFar вести нечем - там нужен перелёт,
-// а не трансляция. Целевая скорость подхода = доля дистанции (F9RnAppK), то есть
-// на 10 км летим 30 м/с (потолок), на 500 м - 25, на 100 м останавливаемся.
 set F9RnAppFar to 50000.
 set F9RnAppStop to 100.
 set F9RnAppK to 0.05.
@@ -272,11 +169,6 @@ set F9GAbort to false.
 set F9LoadDist to 1650000.
 
 print "=== Falcon 9, second stage ===".
-// Загрузчик после первой сборки ставит bootfilename на f9s2.ksm и дальше не
-// сверяет борт с архивом: правки в архиве молча не попадают на летящую
-// ступень. 18.09 так весь день летала утренняя сборка.
-// Сравниваем без BOM и \r: архив и бортовой диск отдают один и тот же
-// файл по-разному, и прямое сравнение кричало на свежей сборке.
 if homeconnection:isconnected and exists("0:/f9s2.ks") and exists("1:/boot/f9s2.ks") {
     local sa is open("0:/f9s2.ks"):readall:string:replace(char(65279), ""):replace(char(13), "").
     local sb is open("1:/boot/f9s2.ks"):readall:string:replace(char(65279), ""):replace(char(13), "").
@@ -292,8 +184,6 @@ print "target: " + round(F9TargetAp / 1000) + " x " + round(F9TargetPe / 1000) +
 print "fairing: " + F9Fairings:length + " halves".
 if F9Fairings:length = 0 print "  NO FAIRING HALVES FOUND - nothing to jettison".
 
-// Какой двигатель выбран - печатаем на столе, а не выясняем в полёте.
-// Зажигание не той детали на связке с Dragon означало бы запуск САС.
 if F9S2Engine():istype("String") {
     print "SECOND STAGE ENGINE NOT FOUND".
 } else {
@@ -302,9 +192,6 @@ if F9S2Engine():istype("String") {
 }
 print "  all engines: " + F9EngineList().
 
-// Кто мы - определяем по СВОЕЙ детали, а не по наличию октавеба: на столе
-// судно одно, и октавеб видят оба компьютера. Процессор второй ступени
-// сидит в Fairing.Adapter, первой - в Interstage.
 if core:part:name:contains("Interstage") {
     print " ".
     print "THIS IS THE FIRST STAGE COMPUTER - f9s1 should run here.".
@@ -668,22 +555,8 @@ function F9S2Need {
     return F9GRefDv() + F9S1Gain(F9GPerf["mode"]) - F9S1Gain(md) + dvE + dvRot.
 }
 
-// ---------------------------------------------------------------------
-// Страница PERF: сколько ракета выводит. Модель та же, что в F9S2Need
-// (ракетное уравнение S2 + доля F9PfK выигрыша S1), но опорный расход не
-// из заглушки 25.72 т, а подогнан по 26 выведениям из f9s2fuel.log:
-// dv2 + 0.8*dv1 = 5100 м/с до круговой 125 км при наклонении 53.28.
-// Точность около 0.4 т. Выше 125 км и за LEO - по Хоману, без полётов.
-// За LEO считается так: парковка F9PfPark км, отлёт той же S2.
-// ---------------------------------------------------------------------
-// 5150, а не 5100: подгонка по журналу шла по грузовым полётам, где на 60 км
-// сбрасываются створки (0.4 т). Без явного учёта сброса их выигрыш сидел
-// внутри F9PfD и доставался Dragon, у которого створок нет. Теперь сброс
-// считается в F9PfHave, и опорное число подогнано заново.
 set F9PfD to 5150.
 set F9PfFairM to 0.4.
-// Сколько топлива S2 уходит до сброса створок на F9FairingAlt, т: по
-// журналу разделение в rtls на 34 км, в asds на 44 км.
 set F9PfFairFuel to lexicon("rtls", 5, "asds", 3, "exp", 2).
 set F9PfK to 0.8.
 set F9PfIncRef to 53.28.
@@ -695,10 +568,6 @@ set F9GDeorbOn to true.
 set F9GBudTxt to "".
 set F9PfDeoOn to true.
 
-// Две разные S2. Грузовая: переходник обтекателя 0.8 + створки 2x0.2 +
-// 2 RCS. Под Dragon: без обтекателя, декуплер Dragon 0.2 + 4 RCS. Бак и
-// MVac одни и те же. На столе всё берётся с живой ракеты, эти числа - когда
-// ракеты под рукой нет.
 function F9PfMass {
     local s1d is 27.3.
     local s1f is 112.
@@ -708,9 +577,6 @@ function F9PfMass {
         set s1d to F9GS1Dry.
         set s1f to max(0, F9Stage1Mass() - F9GS1Dry).
     }
-    // Сухую S2 со стола не выводим: стек минус груз минус топливо дал 1 т
-    // вместо 8.65 (часть железа S2 не попадает в стек или числится грузом),
-    // и PERF показывал 13 т на LEO. Берём замеры.
     local fu is F9S2Fuel().
     if fu[1] > 0 set s2f to fu[1].
     return list(s1d, s1f, s2d, s2f).
@@ -724,8 +590,6 @@ function F9PfRes {
     return F9MecoDvRtls.
 }
 
-// Что ракета даёт: dv S2 в вакууме (F9PfS2Dv) плюс доля F9PfK того, что
-// S1 успела набрать.
 function F9PfS2Dv {
     parameter m, pl, res.
     local m2 is m[2] + m[3] + pl.
@@ -780,8 +644,6 @@ function F9PfNeedLeo {
     return F9PfD + da + vRot * (F9LaunchSinAz(F9PfIncRef) - F9LaunchSinAz(inc)) + F9GReserve.
 }
 
-// Орбита ap x pe (км): выход на круговую pe плюс подъём апогея в перигее.
-// Выведение одним участком, как летает f9s2, - энергия та же.
 function F9PfNeedOrb {
     parameter ap, pe, inc.
     local mu is body:mu.
@@ -790,8 +652,6 @@ function F9PfNeedOrb {
     return F9PfNeedLeo(pe, inc) + sqrt(mu * (2 / rp - 2 / (rp + ra))) - sqrt(mu / rp).
 }
 
-// Сход S2: в апогее опустить перигей до 0.4 атмосферы, как F9S2Deorbit.
-// Галочка S2 DEORBIT снята - ноль.
 function F9PfDeorb {
     parameter ap, pe.
     if not F9GDeorbOn return 0.
@@ -808,8 +668,6 @@ function F9PfDeorbRaw {
     return sqrt(mu * (2 / ra - 2 / (ra + rp))) - sqrt(mu * (2 / ra - 2 / (ra + rq))).
 }
 
-// Импульсы после парковки: подъём апогея в перигее, подъём перигея в
-// апогее. Для прямого профиля - пусто.
 function F9PfBurns {
     parameter ap, pe.
     local pk is F9ParkKm(ap, pe).
@@ -824,8 +682,6 @@ function F9PfBurns {
     return list(b1, b2).
 }
 
-// Полная потребность миссии без схода: выведение (прямо или на парковку)
-// плюс импульсы после неё.
 function F9PfNeedMission {
     parameter ap, pe, inc.
     local pk is F9ParkKm(ap, pe).
@@ -835,12 +691,6 @@ function F9PfNeedMission {
     return n.
 }
 
-// Профиль полёта - цепочка орбит. Орбита 1 - выведение (поля LAUNCH:
-// Ap, Pe, наклонение). Дальше список F9Ms: каждая следующая орбита
-// ap x pe, переход на неё - один узел в апсиде, которую новая орбита
-// сохраняет (125x8946 -> 8946x8946: узел в апогее 8946). Если общей апсиды
-// нет - два узла, через перигей. Наклонение задаёт только выведение.
-// Хранится на Архиве (F9MsFile), исполняется F9S2Profile после SECO.
 set F9MsFile to "0:/f9mission.json".
 set F9Ms to list().
 set F9MsTol to 5.
@@ -855,7 +705,6 @@ function F9MsLoad {
     }
 }
 
-// dv узла в апсиде rb (км): другая апсида oOld -> oNew.
 function F9MsBurnDv {
     parameter rb, oOld, oNew.
     local rad is body:radius.
@@ -863,8 +712,6 @@ function F9MsBurnDv {
     return abs(F9VisViva(r1, (r1 + rad + oNew * 1000) / 2) - F9VisViva(r1, (r1 + rad + oOld * 1000) / 2)).
 }
 
-// Узлы перехода с орбиты ra x rp на A x P. Каждый - lexicon: at (apo/peri),
-// rb (км, где жжём), to (км, новая другая апсида), dv.
 function F9MsLeg {
     parameter ra, rp, a, p.
     local out is list().
@@ -898,9 +745,6 @@ function F9MsBurnText {
     return (choose "apo " if b["at"] = "apo" else "peri ") + round(b["rb"]) + " -> " + round(b["to"]).
 }
 
-// Бюджет профиля: выведение на орбиту ap x pe (сама или через парковку,
-// если перигей выше F9DirectMax и списка нет), затем орбиты списка по
-// очереди. Всё в км, dv в м/с, без резерва. how - узлы каждой орбиты.
 function F9MsPlan {
     parameter ap, pe, inc, deoOn.
     local rad is body:radius.
@@ -946,21 +790,18 @@ function F9MsTotal {
     return n.
 }
 
-// Импульс с парковки в эллипс с апоцентром ra.
 function F9PfApo {
     parameter ra.
     local rr is body:radius + F9PfPark * 1000.
     return sqrt(body:mu / rr) * (sqrt(2 * ra / (rr + ra)) - 1).
 }
 
-// Импульс с парковки на гиперболу с избытком vinf.
 function F9PfDep {
     parameter vinf.
     local rr is body:radius + F9PfPark * 1000.
     return sqrt(vinf ^ 2 + 2 * body:mu / rr) - sqrt(body:mu / rr).
 }
 
-// Избыток скорости для перелёта по Хоману к планете pl.
 function F9PfVinf {
     parameter pl.
     local sn is body:body.
@@ -1023,8 +864,6 @@ function F9PfCalc {
         "° · S1 " + round(m[0], 1) + "+" + round(m[1], 1) + " t · S2 " + round(m[2], 1) + "+" + round(m[3], 1) + " t".
 }
 
-// Итог на PLAN: орбита 1 - поля выведения, дальше список орбит, сход S2 и
-// возврат - те же переключатели на этой же вкладке. Модель та же, что меню.
 function F9PfMission {
     local m is F9PfMass().
     local a0 is F9GNum(F9GFAp, -1).
@@ -1075,8 +914,6 @@ function F9PfMission {
     set F9PfOutMax:style:textcolor to choose F9GAcc if have >= need else F9GYel.
 }
 
-// Строки списка перерисовываются из F9GTick (через F9PfDirty), не из
-// onclick: кнопка удаления только правит F9Ms.
 function F9MsDraw {
     parameter pl.
     F9MsBox:clear().
@@ -1113,10 +950,6 @@ function F9MsDelBtn {
     }.
 }
 
-// Режим возврата обычно выбирается сам - берётся первый, на который хватает
-// топлива, то есть почти всегда RTLS. Баржа при этом недостижима: она стоит
-// в списке ниже. Поэтому в меню есть принудительный выбор, кнопка в строке
-// RECOVERY. Пустая строка - авто.
 set F9GForce to "".
 set F9GForceList to list("", "rtls", "asds", "exp").
 
@@ -1125,8 +958,6 @@ function F9GPickMode {
     local cap is F9GDvNow().
     local lst is list("rtls", "asds", "exp").
     if F9GForce <> "" set lst to list(F9GForce).
-    // Бюджет тот же, что на PLAN: dv S2 в вакууме минус расход S2 на выход
-    // на 125 км в этом режиме, остаток против всего, что после 125 км.
     local m is F9PfMass().
     local pl is F9MsPlan(ap, pe, inc, F9GDeorbOn).
     local nAll is F9MsTotal(pl).
@@ -1354,11 +1185,6 @@ function F9GWinTake {
     F9GValidate().
 }
 
-// Кнопки PLAN. SAVE PLAN пишет план в f9cfg.json (поля, возврат, сход;
-// орбиты списка и так в f9mission.json) - при возврате к ракете меню
-// поднимается с ним. SEND BARGE POINT отдаёт курс первой ступени, та
-// считает точку (F9AsdsSetup) и пишет её барже. Точка зависит только от
-// курса, хватает ли топлива на ASDS - не важно.
 function F9GIncOk {
     local inc is F9GNum(F9GFInc, -999).
     local lat is abs(ship:latitude).
@@ -1854,8 +1680,6 @@ function F9RnMono {
     return m.
 }
 
-// Гасим не скорость, а ошибку скорости: хотим лететь на цель со скоростью vA,
-// всё остальное в векторе rel - боковой снос, его давим теми же двигателями.
 function F9S2Approach {
     if not F9RnTgt() return false.
     local d0 is target:distance.
@@ -1934,8 +1758,6 @@ function F9S2DoCmd {
     }
 }
 
-// Сход S2 сам после отделения груза, если стоит S2 DISPOSAL. Пауза
-// F9DeoWait, чтобы груз отошёл; во время паузы ABORT BURN отменяет сход.
 function F9S2AutoDeorbit {
     if not F9GDeorbOn return.
     print "S2 deorbit in " + F9DeoWait + " s - ABORT BURN cancels.".
@@ -1952,8 +1774,6 @@ function F9S2AutoDeorbit {
     set F9GPhase to "orbit".
 }
 
-// Довыведение с парковки: те же узлы, что команда "set" на вкладке ORBIT.
-// Перигей почти равен парковке (GTO) - второй импульс не ставим.
 function F9S2Profile {
     if F9Prof = "park" {
         print " ".
@@ -2113,7 +1933,6 @@ if F9S1Attached() {
     set F9GM2 to 0.
     for p in F9GStack() {
         set F9GM2 to F9GM2 + p:mass.
-        // Декуплер Dragon - железо S2, остаётся на ступени; груз - капсула с trunk.
         if not p:name:contains("F9") and not p:name:contains("Dragon.Decoupler") and not p:name:contains("Dragon_Decoupler")
            and p:uid <> core:part:uid {
             set F9GPayload to F9GPayload + p:mass.
@@ -2442,10 +2261,6 @@ if F9S2Engine():istype("String") {
     wait until false.
 }
 
-// ---------------------------------------------------------------------
-// Ждём разделения. Пока первая ступень с нами - не трогаем ничего: рулит
-// она, и два автопилота на одном судне подерутся за управление.
-// ---------------------------------------------------------------------
 if F9S1Attached() {
     print " ".
     print "waiting for stage separation...".
@@ -2474,9 +2289,6 @@ set F9SepTime to time:seconds.
 set F9SepMass to ship:mass.
 set F9GPhase to "s2".
 when time:seconds > F9SepTime + 2 then {
-    // Берём только СВОЙ бустер: ближайший с этим префиксом и не дальше
-    // 5 км. Старые невернувшиеся бустеры носят то же начало имени, и раньше
-    // фокус уходил на первый попавшийся, где бы он ни лежал.
     list targets in F9Tl.
     local bb is 0.
     local bd is 5000.
@@ -2494,13 +2306,8 @@ when time:seconds > F9SepTime + 2 then {
     }
 }
 
-// Поднимаем СВОЮ дальность физики прямо здесь: с этого момента игрок уходит
-// смотреть посадку первой ступени, и без этого вторую упакует на 22 км.
 F9SetLoadDist(F9LoadDist).
 
-// Читаем обратно, что РЕАЛЬНО встало. PhysicsRangeExtender в сборке нет, и
-// KSP вполне может обрезать запрошенное - тогда цифры разойдутся, и это
-// будет видно сразу, а не по факту "ступень опять исчезла".
 print "  physics range: requested " + round(F9LoadDist / 1000) + ", actual " +
       round(ship:loaddistance:flying:unload / 1000) + "/" +
       round(ship:loaddistance:suborbital:unload / 1000) + "/" +
@@ -2509,27 +2316,10 @@ print "  physics range: requested " + round(F9LoadDist / 1000) + ", actual " +
 set F9T0 to time:seconds.
 lock F9Met to time:seconds - F9T0.
 
-// Пауза перед запуском: на реальном пуске между разделением и SES-1
-// проходит несколько секунд, чтобы ступени успели разойтись.
 wait 4.
 
-// ---------------------------------------------------------------------
-// SES-1. Двигатель зажигаем напрямую, а не стейджингом: в крафте он стоит
-// в одной стадии с обтекателем (istg 0 у обоих), и одна команда stage
-// сбросила бы створки прямо сейчас - на высоте, где напор ещё заметный.
-// ---------------------------------------------------------------------
-// Зажигание с ПЛАВНЫМ набором тяги. На полной сразу нельзя: первая ступень
-// ещё рядом, и струя Vacuum Merlin бьёт ей прямо в межступенник.
-//
-// Раньше это была ступенька: 20% - пауза пять секунд - и разом 100%. Скачок
-// тяги впятеро за один тик - это удар по связке и по самой ступени. Теперь
-// газ едет линейно от F9SoftThrottle до полного за F9RampTime секунд.
-//
-// Отсчёт начинается НЕ от команды зажигания, а от момента, когда появилась
-// настоящая тяга: между activate и первыми килоньютонами проходит время, и
-// разгонять по нему рампу значило бы съесть половину плавности впустую.
-set F9SoftThrottle to 0.15.        // с чего начинаем
-set F9RampTime to 3.               // секунд до полной тяги
+set F9SoftThrottle to 0.15.
+set F9RampTime to 3.
 set F9S2MaxG to 3.
 
 function F9S2GThr {
@@ -2537,8 +2327,6 @@ function F9S2GThr {
     return min(1, F9S2MaxG * constant:g0 * ship:mass / ship:availablethrust).
 }
 
-// Пока зажигание не подтвердилось, F9IgnT лежит далеко в будущем - рампа
-// стоит на F9SoftThrottle и никуда не едет.
 set F9IgnT to time:seconds + 3600.
 lock F9Ramp to min(1, F9SoftThrottle + (1 - F9SoftThrottle) *
                       max(0, time:seconds - F9IgnT) / F9RampTime).
@@ -2559,10 +2347,6 @@ if ship:availablethrust <= 0 {
     lock throttle to 0.
     print "SES-1 FAILED - no thrust.".
 
-    // Почему именно нет - "тяги нет" не диагноз, а симптом. Печатаем
-    // состояние двигателя и баки: зажёгся ли он вообще, не сорвало ли
-    // пламя, есть ли чем гореть и сколько деталей осталось на судне.
-    // Разбирать это по скриншоту обломков я не берусь.
     local e is F9S2Engine().
     if not e:istype("String") {
         print "  engine " + e:name.
@@ -2580,7 +2364,6 @@ if ship:availablethrust <= 0 {
     }
     wait until false.
 }
-// Тяга есть - с этой секунды рампа поехала.
 set F9IgnT to time:seconds.
 print "T+" + round(F9Met, 1) + " SES-1 at " + round(100 * F9SoftThrottle) +
       "%, thrust " + round(ship:availablethrust, 0) + " kN".
@@ -2589,39 +2372,19 @@ print "  spool-up in " + F9RampTime + " s".
 wait F9RampTime.
 print "T+" + round(F9Met, 1) + " full thrust".
 
-// ---------------------------------------------------------------------
-// Выведение.
-// ---------------------------------------------------------------------
 set F9S2PitchMax to 45.
 set F9S2TGoMin to 5.
 set F9S2TTail to 15.
 set F9S2PitchTail to 8.
 set F9S2Stretch to 2.2.
 set F9S2ThrMin to 0.3.
-// Точная отсечка (21.09 17:58, F9-KARTA "SECO точнее"). Газ убывает по
-// остатку dv до целевой полуоси, в хвосте гасится вертикальная скорость.
-set F9S2FineT to 2.                // с, постоянная спада газа по остатку dv
-set F9S2FineThr to 0.15.           // нижний газ перед отсечкой
-set F9S2CutLead to 0.04.           // с, упреждение отсечки (два такта)
+set F9S2FineT to 2.
+set F9S2FineThr to 0.15.
+set F9S2CutLead to 0.04.
 
-// Доворот в плоскость цели прямо на выведении.
-//
-// Азимут считается один раз на столе и дальше держится намертво. Всё, что
-// уводит ступень из плоскости - неточность азимута, снос первой ступени,
-// старт не в свою секунду - к SECO остаётся как есть, и потом это чинит
-// вторая ступень отдельным манёвром за свой запас. 17.09 так набежало 2.89
-// градуса относительного наклонения.
-//
-// Тяга доворачивается против ТОЙ составляющей скорости, что смотрит из
-// плоскости цели. Знак берётся из данных, а не из моего представления о
-// том, куда смотрит нормаль: он пересчитывается каждый такт и сам сходится
-// в ноль.
-//
-// Позиционную часть промаха это не лечит - если стартовал не в окно, узел
-// всё равно сдвинут. Лечит угловую, а она и набегает на выведении.
-set F9S2YawK to 0.004.             // доля тяги вбок на м/с выхода из плоскости
-set F9S2YawMax to 10.              // градусов, потолок доворота
-set F9S2YawAlt to 40000.           // ниже не рыскаем, там ещё есть напор
+set F9S2YawK to 0.004.
+set F9S2YawMax to 10.
+set F9S2YawAlt to 40000.
 set F9S2YawNow to 0.
 set F9S2YawN to V(0, 0, 0).
 set F9S2P to 0.
@@ -2673,7 +2436,6 @@ function F9S2Guide {
     local tg is tFull.
     set F9S2TStar to 0.
     if vv > 1 and dh > 0 {
-        // Вертикальная тяга спадает к нулю к SECO (21.09 18:02, F9-KARTA).
         set F9S2TStar to 3 * dh / vv.
         set tg to max(tFull, min(F9S2TStar, tFull * F9S2Stretch)).
     }
@@ -2682,8 +2444,6 @@ function F9S2Guide {
     local lim is F9S2PitchMax.
     local aV is 0.
     if tc > F9S2TGoMin {
-        // Три условия на конце: высота, vv = 0 и вертикальная тяга = 0
-        // (ускорение = -gЭфф на высоте ввода). Тангаж к SECO сам уходит в 0.
         local rIns is body:radius + F9InsAlt.
         local vcI is sqrt(body:mu * (2 / rIns - 1 / F9TargetSma)).
         local gEnd is body:mu / (rIns * rIns) - vcI * vcI / rIns.
@@ -2742,20 +2502,11 @@ until ship:orbit:semimajoraxis >= F9TargetSma or ship:availablethrust <= 0
       or F9S2DvLeft() <= F9S2ACmd() * F9S2CutLead {
     F9S2Guide().
     F9S2YawCalc().
-    // Переставляем дальность физики заново раз в пять секунд.
-    //
-    // Одного вызова у разделения может не хватить: KSP сбрасывает
-    // vesselRanges при упаковке и при смене ситуации (FLYING ->
-    // SUB_ORBITAL), а ситуация на выведении меняется как раз посередине.
-    // Вызов дешёвый, а цена пропущенного сброса - ступень выпадает из
-    // симуляции и выведение доигрывается по рельсам.
     if time:seconds > F9NextLoadDist {
         set F9NextLoadDist to time:seconds + 5.
         F9SetLoadDist(F9LoadDist).
     }
 
-    // Створки сбрасываем по напору, а не по высоте: напор - это ровно то,
-    // от чего они защищают, и он честнее любой заранее вбитой высоты.
     if not F9FairingDone and ship:altitude > F9FairingAlt and ship:q < F9FairingQ {
         set F9FairM0 to ship:mass.
         set F9FairM1 to ship:mass.
@@ -2783,15 +2534,6 @@ until ship:orbit:semimajoraxis >= F9TargetSma or ship:availablethrust <= 0
     wait 0.02.
 }
 
-// Глушим по-настоящему.
-//
-// "lock throttle to 0" держит газ на нуле только пока блокировка жива, а в
-// конце скрипта стоит unlock - и газ возвращается игроку с тем значением,
-// что осталось у него в рычаге. На первой ступени это уже приводило к тому,
-// что двигатель продолжал работать после посадки.
-//
-// Здесь дополнительно гасим сам двигатель: вторая ступень остаётся на
-// орбите, и работающий Merlin ей там ни к чему.
 set F9SecoOk to F9S2DvLeft() < 5.
 F9S2Log("SECO dv left " + round(F9S2DvLeft(), 2) + " vv " + round(ship:verticalspeed, 2)).
 set F9SecoMass to ship:mass.
@@ -2805,9 +2547,6 @@ print " ".
 if F9SecoOk print "T+" + round(F9Met, 1) + " SECO - ORBIT".
 else print "T+" + round(F9Met, 1) + " SECO - out of fuel before orbit".
 
-// Двигатель отработал - держать вокруг ступени физику больше незачем,
-// возвращаем штатные дистанции. Так же делает starship.ks после своей
-// программы: SetLoadDistances(ship, "default").
 F9SetLoadDist("default").
 print "  physics range restored to default".
 print "  apoapsis " + round(ship:apoapsis / 1000, 1) + " km".
@@ -2816,24 +2555,12 @@ hudtext("S2 SECO: " + (choose "ORBIT " if F9SecoOk else "OUT OF FUEL ") +
         round(ship:apoapsis / 1000, 1) + " x " + round(ship:periapsis / 1000, 1) + " km",
         10, 2, 26, (choose green if F9SecoOk else red), false).
 
-// Если створки всё ещё на месте - сбрасываем, дальше напора не будет.
 if not F9FairingDone {
     F9FairingJettison().
     print "  fairing jettisoned after SECO-1".
 }
 
-// Отдельного импульса циркуляризации здесь БОЛЬШЕ НЕТ.
-//
-// Он был мёртвым кодом. Цикл выше выходит по одному из двух: либо перигей
-// достиг цели - и циркуляризовать уже нечего, либо кончилась тяга - и
-// циркуляризовать нечем. Блок стоял под условием "перигей ниже цели", то
-// есть срабатывал только во втором случае, где его собственный цикл
-// "пока есть тяга" завершался в тот же тик.
-//
-// Единый закон подъёма делает эту работу сам: круговая орбита - его
-// неподвижная точка, а не отдельная фаза после неё.
 
-// Ручной рычаг обнуляем ДО снятия блокировки - иначе он и вернёт газ.
 set ship:control:pilotmainthrottle to 0.
 unlock steering.
 unlock throttle.
@@ -2848,8 +2575,6 @@ print "  " + round(ship:apoapsis / 1000, 1) + " x " + round(ship:periapsis / 100
 print "  inclination " + round(ship:orbit:inclination, 2) + " deg".
 print "  fuel " + round(F9FuelPct(), 1) + "%".
 
-// Замер для PLAN: сколько dv S2 ушло от разделения до SECO. Сброс створок
-// - потеря массы без топлива, поэтому участки до и после него отдельно.
 if F9SepMass > 0 and F9SecoMass > 0 and homeconnection:isconnected {
     local dvS2 is F9GVe() * ln(F9SepMass / F9SecoMass).
     if F9FairM0 > 0 set dvS2 to F9GVe() * (ln(F9SepMass / F9FairM0) + ln(F9FairM1 / F9SecoMass)).

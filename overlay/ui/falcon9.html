@@ -310,12 +310,6 @@ function hms(s){
   return `${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
 }
 
-// Время вехи: факт ev* -> прогноз kOS eta* (формулы в f9s1.ks, F9TelEta) ->
-// шаблон режима tpl[mode] со сдвигом по последнему факту. Нет шаблона для
-// режима - вехи в этом полёте нет (boostback только RTLS, посадки нет у exp).
-// Шаблоны - по логам 21.09: RTLS entry 279 / lburn 336 / land 367,
-// ASDS 336-342 / 410 / 431.
-// SECO (own) - событие S2, в цепочку бустера не входит: в RTLS оно позже entry.
 const MS = [
   { id:"liftoff", label:"Liftoff",      tpl:{ rtls:0,   asds:0,   splashdown:0,   exp:0 } },
   { id:"maxq",    label:"Max Q",        ev:"evmaxq",  eta:"etamaxq",
@@ -489,8 +483,6 @@ addEventListener("resize", () => { fit(); fitArc(); });
 })();
 
 const MS_LEVELS = [-15, 22, -38, 45, -61];
-// Зазор между основной и внутренней дугой (0 - внутренней нет). Подпись
-// первого нижнего уровня ставится по центру этого зазора.
 let INNER_DY = 0;
 
 function paintArc(met, alt){

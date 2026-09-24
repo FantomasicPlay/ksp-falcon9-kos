@@ -9,7 +9,7 @@
     --dim:      rgba(255,255,255,.42);
     --faint:    rgba(255,255,255,.20);
     --track:    rgba(255,255,255,.22);
-    --scale:    1;           /* общий масштаб полосы, задаётся из JS по ширине экрана */
+    --scale:    1;
   }
 
   *{ box-sizing:border-box; margin:0; padding:0; }
@@ -26,7 +26,6 @@
 
   .num{ font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1; }
 
-  /* ---------------- нижняя полоса ---------------- */
   #bar{
     position:absolute; left:0; right:0; bottom:0;
     height:calc(206px * var(--scale));
@@ -41,16 +40,11 @@
   }
   .plate.left { left:0; }
   .plate.right{ right:0; }
-  /* Подложка живёт только там, где есть приборы: на площадке по бокам пусто,
-     и тень под пустотой выглядела мусором. Появляется не просто фейдом, а
-     наездом от края экрана - как будто выезжает планка, а не проступает пятно. */
   .plate{ transition:opacity .52s ease, transform .52s cubic-bezier(.2,.85,.25,1);
           transform:translateX(0); }
   .plate.left.plate-off { opacity:0; transform:translateX(-100%); }
   .plate.right.plate-off{ opacity:0; transform:translateX(100%); }
 
-  /* Затемнение под дугой — радиальное, по кривизне колеса, а не прямоугольник:
-     у прямоугольного градиента видны прямые вертикальные края. */
   #centerbg{
     position:absolute; left:50%; bottom:0; transform:translateX(-50%);
     width:min(calc(1700px * var(--scale)), 88vw);
@@ -72,7 +66,6 @@
   .side.left  .vehicle{ left:calc(237.1px * var(--s)); }
   .side.right .vehicle{ left:calc(1682.3px * var(--s)); }
 
-  /* ---------------- круглый прибор (1:1 по макету Figma 1920x1082) ---------------- */
   .gauge, .engines{
     position:absolute; bottom:calc(15px * var(--s)); z-index:1;
     width:calc(151px * var(--s)); height:calc(151px * var(--s));
@@ -92,57 +85,29 @@
   .rim{ fill:none; stroke:#fff; stroke-opacity:.5; }
   .att .rim{ stroke-width:2; }
 
-  /* ---------------- кольцо двигателей ---------------- */
   .engdot{ fill:#fff; fill-opacity:.5; }
   .lit{ fill:#fff; transform:scale(0); transform-box:fill-box; transform-origin:center;
         transition:transform .32s cubic-bezier(.2,.9,.3,1.15); }
   .lit.on{ transform:scale(1); }
 
-  /* Три режима:
-       booster — до отделения: кольцо двигателей + сфера положения, справа скорость/высота
-       dual    — после отделения: обе ступени, скорость+высота и скорость+двигатели
-       land    — возврат ускорителя: слева ДВИГАТЕЛИ + ВЫСОТА, как на трансляции
-     Какие приборы видны — решает JS (LAYOUT), тут только подписи аппаратов. */
   body.mode-booster .vehicle{ display:none; }
 
-  /* сфера положения: силуэт контуром из макета */
   .att .craft{ fill:none; stroke:#fff; stroke-width:.5; }
 
-  /* ---------------- центр: дуга миссии ---------------- */
-  /* центр не должен наезжать на приборы по краям на узких экранах */
-  /* Часы опущены ниже: вплотную к линии горизонта они читались как приклеенные
-     к ней, а снизу оставался лишний воздух. */
   #center{ display:flex; flex-direction:column; align-items:center; justify-content:center;
            width:min(calc(980px * var(--scale)), 55vw);
            transform:translateY(calc(34px * var(--scale))); }
-  /* Дуга рисуется во всю ширину экрана отдельным слоем: когда появляется круг
-     Земли, линия должна доходить до краёв, а не обрываться в центре. */
-  /* Появление и смена приборов: как на трансляции — виджет всплывает,
-     а не возникает мгновенно. */
   #b-eng, #b-att, #b-spd, #b-alt, #r-spd, #r-alt, #s-spd, #s-eng, #s-att, #s-g{
     transition: opacity .42s ease, transform .42s cubic-bezier(.2,.85,.25,1);
-    /* Скрыты уже в разметке, ДО первого запуска JS. Иначе между отрисовкой
-       страницы и первым кадром render() виден весь набор приборов сразу -
-       а если первый же реальный режим окажется "pad", JS решает, что всё
-       это надо СКРЫТЬ, и на полсекунды показывает ещё и затухание. */
     display: none;
   }
   .w-off{ opacity:0 !important; transform:translateY(14px) scale(.9); }
-  /* Содержимое виджета скрыто ЦЕЛИКОМ, пока не пришло время его показывать.
-     Раньше прятали поимённо - сначала .ring-bg, потом .lit/.engdot, потом
-     .rim - и каждый раз всплывал следующий забытый (.fuel-bg и любой будущий).
-     Один класс на всё: что внутри, то и скрыто. */
   .pre-reveal > *{ opacity:0; }
-  /* до старта подписи ступеней тоже не нужны */
   .vehicle{ transition: opacity .42s ease; }
   body.mode-pad .vehicle{ opacity:0; }
-  /* ускоритель отработал — его подпись убираем, слева уже данные корабля */
   body.mode-ship .vehicle{ opacity:0; }
   body.has-att .vehicle{ opacity:0; }
 
-  /* Двигатели зажигаются каскадом от центральных наружу. Раньше сопло росло
-     из 55% размера - на мелких точках это читалось как "вылупление из
-     ничего". На трансляции сопло просто загорается на месте, без роста. */
   @keyframes engpop{
     from{ opacity:0; }
     to  { opacity:1; }
@@ -151,15 +116,10 @@
     animation: engpop .38s ease-out both;
     animation-delay: var(--d, 0ms);
   }
-  /* Обод и трек кольца — тем же образом, без масштаба */
   .revealing .rim, .revealing .ring-bg, .revealing .ring-fg, .revealing .engring{
     animation: engpop .5s ease both;
   }
 
-  /* Слой доведён до самого низа кадра (было bottom:74px): маска в WebView2
-     режет содержимое по своей области, привязанной к высоте слоя, поэтому
-     рисовать линию и диск НИЖЕ слоя нельзя — они обрывались над приборами.
-     Высота = прежние 150 + 74, вершина дуги остаётся на месте (TOP_Y 12%). */
   #arcwrap{
     position:absolute; left:0; right:0; bottom:0;
     height:calc(224px * var(--scale)); pointer-events:none; z-index:0;
@@ -167,14 +127,10 @@
   #arcwrap svg{ position:absolute; inset:0; width:100%; height:100%; overflow:visible;
                 filter:drop-shadow(0 2px 7px rgba(0,0,0,.9)); }
   .arc-bg{ fill:none; stroke:var(--track); stroke-width:1.6; }
-  /* вторая окружность — линия горизонта под таймлайном */
   .arc-inner{ fill:none; stroke:rgba(255,255,255,.30); stroke-width:1.2; }
   .arc-fg{ fill:none; stroke:var(--ink); stroke-width:1.6; transition:stroke-dashoffset .12s linear; }
-  /* Пройденная веха: белое кольцо потолще, середина остаётся тёмной —
-     кружок заполняется белым, но не до конца. */
   .ms-dot{ fill:rgba(0,0,0,.72); stroke:var(--track); stroke-width:1.8; }
   .ms-dot.done{ stroke:var(--ink); stroke-width:2.4; }
-  /* Внутри пройденной вехи — белая точка: кольцо заполняется, но не до конца. */
   .ms-core{ fill:var(--ink); opacity:0; transition:opacity .2s linear; }
   .ms-core.done{ opacity:1; }
   .ms-txt{
@@ -196,9 +152,6 @@
     text-shadow:0 2px 8px rgba(0,0,0,.95);
   }
 
-  /* Дуга с вехами и центральный T+/T- живут ровно на своём месте всегда —
-     их логику не трогаем, тут только видимость: на площадке уступают место
-     верхнему бейджу, дальше проявляются сами. */
   #center, #arcwrap{
     transition:opacity .5s ease, transform .5s cubic-bezier(.2,.85,.25,1);
   }
@@ -206,11 +159,6 @@
     opacity:0; transform:translateY(calc(18px * var(--scale)));
   }
 
-  /* ---------------- верхний бейдж часов (площадка, макет USSF-153) ---------------- */
-  /* Точная фигура из макета (SVG-путь), а не приближение через clip-path —
-     раньше форма была "на глаз", отсюда и жалоба на кривой тычок. Базовый
-     размер платы 317x60, подложки-свечения 584x178 — те же единицы, что
-     в присланном SVG, масштабируются вместе с --scale. */
   #topclock{
     position:absolute; left:0; top:calc(60px * var(--s)); overflow:visible;
     width:calc(317px * var(--s)); height:calc(100px * var(--s));
@@ -223,16 +171,11 @@
   #tophold{ display:none; }
   body.hold #tophold{ display:inline; }
   body.hold #toptp{ display:none; }
-  /* Уезжает вверх и гаснет, как только появляется телеметрия и берёт слово
-     центральная дуга — тот же приём, что и .plate, только в другую сторону.
-     Видимость по умолчанию (см. launched-ui в JS): бейдж — как обычный
-     элемент разметки, прячем его ЯВНО, а не наоборот. */
   body.launched-ui #topclock{
     opacity:0; transform:translateY(calc(-26px * var(--s)));
     pointer-events:none;
   }
 
-  /* ---------------- нет данных ---------------- */
   body.stale #bar{ opacity:.45; }
   #nodata{
     position:absolute; left:50%; bottom:calc(218px * var(--scale)); transform:translateX(-50%);
@@ -241,9 +184,6 @@
   }
   body.stale #nodata{ opacity:1; }
 
-  /* Диагностика: если render() падает, кадр раньше пропускался молча - с виду
-     "телеметрия пропала", а причина видна только в DevTools, до которых у
-     Егора нет доступа в игре. Показываем текст ошибки прямо поверх картинки. */
   #jserr{
     position:absolute; left:calc(16px * var(--scale)); top:calc(16px * var(--scale));
     max-width:70vw; padding:.5em .8em; background:rgba(40,4,4,.88);
@@ -258,10 +198,6 @@
 <div id="nodata">NO DATA FROM KOS</div>
 <div id="jserr"></div>
 
-<!-- Верхний бейдж часов — только на площадке, пока нет остальной телеметрии.
-     Дублирует #met/#mission (те не трогаем, дуга вех их не отпустит), просто
-     показывает то же самое сверху-слева, как на референсе трансляции. Как
-     только launched — бейдж уезжает вверх и гаснет, снизу проявляется дуга. -->
 <svg id="topclock" viewBox="0 0 317 100">
   <path d="M308.956 0H0V60H239.683C250.252 60 260.512 56.4381 268.807 49.8895L313.913 14.2791C319.869 9.57714 316.544 0 308.956 0Z" fill="#000" fill-opacity=".25"/>
   <text id="toptp" class="t-tp" x="46" y="38">T-</text>
@@ -273,9 +209,6 @@
 <div id="bar">
 
   <div id="centerbg"></div>
-  <!-- plate-off сразу в разметке: без него подложка на холодном старте рождалась
-       уже выехавшей, и первый же applyLayout (обычно "на площадке пусто")
-       задвигал её обратно с анимацией - заметный лишний "моргаю" при запуске. -->
   <svg class="plate left plate-off" viewBox="0 901 592 181">
     <defs>
       <linearGradient id="plGL" x1="449.5" y1="992.5" x2="583.5" y2="992.75" gradientUnits="userSpaceOnUse">
@@ -293,7 +226,6 @@
     <path d="M1920 1082H1328L1522.55 922.483C1532.35 914.523 1537.25 910.543 1542.72 907.711C1547.58 905.199 1552.75 903.363 1558.1 902.252C1564.14 901 1570.45 901 1583.07 901H1920V1082Z" fill="url(#plGR)" fill-opacity=".25"/>
   </svg>
 
-  <!-- ЛЕВО: SUPER HEAVY -->
   <div class="side left">
     <div class="stack">
       <div class="pair">
@@ -306,7 +238,6 @@
     </div>
   </div>
 
-  <!-- ЦЕНТР -->
   <div id="arcwrap"><svg id="arcsvg"></svg></div>
 
   <div id="center">
@@ -314,7 +245,6 @@
     <div id="mission">Starship Flight Test</div>
   </div>
 
-  <!-- ПРАВО: STARSHIP -->
   <div class="side right">
     <div class="stack">
       <div class="pair">
@@ -332,59 +262,36 @@
 </div>
 
 <script>
-// ===========================================================================
-//  Данные приходят кадрами ~10 Гц (booster + ship). Рисуем в 60 FPS и
-//  интерполируем между кадрами — отсюда плавность.
-// ===========================================================================
 
 const SVGNS = "http://www.w3.org/2000/svg";
 const $ = id => document.getElementById(id);
 
-// Какие приборы показывать в каждом режиме. Порядок в разметке уже такой,
-// какой нужен, поэтому достаточно скрыть лишние.
 const LAYOUT = {
-  pad:     [],                                          // до старта — только центр
+  pad:     [],
   booster: ["b-eng", "b-att", "r-spd", "r-alt"],
-  dual:    ["b-eng", "b-att", "s-spd", "s-eng"],   // буст-бэк: слева двигатели + положение
-  descent: ["b-spd", "b-alt", "s-spd", "s-eng"],        // на спуске слева скорость
-  land:    ["b-eng", "b-alt", "s-spd", "s-eng"],        // двигатели — за 1 км до посадки
-  // Ускоритель отработал: слева скорость и высота корабля, справа его положение
-  // и двигатели. После выключения двигателей вместо них — перегрузка.
+  dual:    ["b-eng", "b-att", "s-spd", "s-eng"],
+  descent: ["b-spd", "b-alt", "s-spd", "s-eng"],
+  land:    ["b-eng", "b-alt", "s-spd", "s-eng"],
   ship:    ["b-spd", "b-alt", "s-att", "s-eng"],
   shipg:   ["b-spd", "b-alt", "s-att", "s-g"]
 };
-const SHOW_AT = -5;                                     // с, за сколько до старта выезжают приборы
-const ENG_REVEAL_AT = 5000;                             // м радиовысоты, ускоритель
-const SHIP_ENG_AT   = 10000;                            // м, корабль — двигатели на посадке
-// Полная шкала приборов корабля — по факту SECO из ShipFlightData.csv
-// (05.09.2026): Alt 123460 м, Airspeed 3593 м/с = 12934.8 км/ч. Выше этих
-// значений скорость/высота ещё растут, но кольцо стоит полным — по просьбе
-// не сделано растяжимым, чтобы не мельчить полезный диапазон разгона.
-const SHIP_SPD_FULL_KMH = 12900;                        // км/ч, полное кольцо скорости
-const SHIP_ALT_FULL_KM  = 125;                          // км, полное кольцо высоты
+const SHOW_AT = -5;
+const ENG_REVEAL_AT = 5000;
+const SHIP_ENG_AT   = 10000;
+const SHIP_SPD_FULL_KMH = 12900;
+const SHIP_ALT_FULL_KM  = 125;
 const ALL_WIDGETS = ["b-eng", "b-att", "b-spd", "b-alt", "r-spd", "r-alt", "s-spd", "s-eng", "s-att", "s-g"];
 let curMode = "";
 let launched = false;
 let lastPhase = "idle";
-// Виджеты с кольцевым индикатором: при появлении кольцо один раз
-// "разворачивается" от пустого к текущему значению (см. setGauge/setFuel).
 const SWEEPABLE = new Set(["b-spd","b-alt","r-spd","r-alt","s-spd","s-g","b-eng","s-eng"]);
 const pendingSweep = new Set();
 function takeSweep(id){ return pendingSweep.delete(id); }
-// Виджеты, которым applyLayout уже назначил показ, но откладывает его до
-// HIDE_MS (пока старые соседи по строке не освободят место - см. anyHiding
-// ниже). Всё это время dataset.shown/display у них ещё "не показано", и
-// сторож reconcileVisibility() принимал это за сбой и включал их досрочно -
-// а потом штатный doShow() включал их ЕЩЁ РАЗ, и анимация появления
-// проигрывалась дважды. Пока id в этом множестве, сторож его не трогает.
 const pendingShow = new Set();
 
 const HIDE_MS = 430;
-const PLATE_LEAD_MS = 220;  // подложка успевает заметно выехать раньше содержимого
+const PLATE_LEAD_MS = 220;
 
-// В разметке приборы скрыты изначально (display:none в CSS) - фиксируем это в
-// той же бухгалтерии, которой пользуется applyLayout, чтобы первый реальный
-// режим сразу корректно решил, что показывать, без ложного "уже показано".
 for (const id of ALL_WIDGETS){
   const el = document.getElementById(id);
   if (el) el.dataset.shown = "0";
@@ -393,24 +300,15 @@ for (const id of ALL_WIDGETS){
 function revealEngines(id){
   const el = document.getElementById(id);
   if (!el) return;
-  // Содержимое было скрыто целиком - открываем его ровно сейчас, в один кадр
-  // с запуском анимаций, чтобы ничто не успело мелькнуть готовым раньше.
   el.classList.remove("pre-reveal");
   el.classList.remove("revealing");
-  void el.offsetWidth;                 // перезапуск анимации
+  void el.offsetWidth;
   el.classList.add("revealing");
-  // Инлайн-скрытие (hideTrackInstant) своё дело сделало - дальше точками и
-  // ободом управляет анимация каскада. Снимаем override сейчас, иначе после
-  // того как ниже уберётся класс .revealing (через 1200мс), всё, чему
-  // мгновенное скрытие никто не отменил, снова погаснет в opacity:0.
   el.querySelectorAll(".lit, .engdot, .rim").forEach(d => { d.style.opacity = ""; });
   setTimeout(() => el.classList.remove("revealing"), 1200);
   drawTrack(el);
 }
 
-// Серый трек (.ring-bg) раньше был статичен по форме - только проявлялся
-// прозрачностью. Теперь реально "дорисовывается" по дуге: старт с dashoffset
-// = вся длина трека (полностью скрыт), потом едет к 0 (дуга целиком видна).
 function drawTrack(el){
   const track = el.querySelector(".ring-bg");
   if (!track) return;
@@ -418,18 +316,6 @@ function drawTrack(el){
   requestAnimationFrame(() => track.setAttribute("stroke-dashoffset", "0"));
 }
 
-// Без dashoffset SVG-дуга по умолчанию УЖЕ полностью нарисована - виджет
-// появлялся с готовым кольцом, и только потом (когда доходила очередь до
-// drawTrack, через 460мс) оно вдруг прыгало в "пусто" и рисовалось заново -
-// заметная вспышка. Прячем трек СРАЗУ, синхронно с показом самого виджета,
-// а не откладываем - на первом же кадре он уже должен быть невидим.
-// Та же история с точками/соплами (.lit, .engdot) И с белым ободом (.rim,
-// r=45/52 у кластера двигателей и сферы положения): opacity им задаёт ТОЛЬКО
-// анимация каскада внутри .revealing, а вне её правила нет вообще - значит
-// по умолчанию видно на полную яркость. Пока каскад не стартовал (тоже через
-// 460мс), всё это висело уже "включённым" - обод ярким, точки видны, - а
-// потом резко гасло в 0 и загоралось заново (кадры: яркий обод -> обод
-// погас, точки едва проступили -> обод и точки снова разгораются).
 function hideTrackInstant(el){
   const track = el.querySelector(".ring-bg");
   if (track){
@@ -439,29 +325,18 @@ function hideTrackInstant(el){
   el.querySelectorAll(".lit, .engdot, .rim").forEach(d => { d.style.opacity = "0"; });
 }
 
-// Показать один виджет: общий код для мгновенного и отложенного появления.
 function revealWidget(el, id){
   el.dataset.shown = "1";
   clearTimeout(+el.dataset.tid || 0);
-  // ВАЖНО: пустая строка НЕ снимает inline display - она отдаёт решение
-  // обратно правилу стиля, а у этих id теперь в CSS лежит "display:none"
-  // (правка от вспышки всех приборов при запуске). Без явного значения
-  // виджет так и оставался скрыт навсегда - показывать было некому.
   el.style.display = "block";
   if (SWEEPABLE.has(id)){
     el.classList.add("pre-reveal");
     hideTrackInstant(el);
   }
   el.classList.add("w-off");
-  // Подложка (.plate) выезжает от края экрана (см. её CSS-transition). Раньше
-  // содержимое всплывало ОДНОВРЕМЕННО с ней и на миг оказывалось без своей
-  // площадки - планка ещё едет, а прибор уже висит поверх пустоты. Даём
-  // подложке заметно продвинуться, прежде чем показывать содержимое.
   setTimeout(() => {
     if (el.dataset.shown !== "1") return;
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove("w-off")));
-    // Разворот кольца запускаем ещё позже, когда сам виджет уже осел на
-    // месте (иначе движение кольца тонуло в собственном появлении контейнера).
     if (SWEEPABLE.has(id)){
       setTimeout(() => {
         if (el.dataset.shown !== "1") return;
@@ -477,12 +352,6 @@ function applyLayout(mode){
   curMode = mode;
   const on = LAYOUT[mode] || LAYOUT.booster;
 
-  // Уходящий и приходящий виджет в одной строке (.pair — обычный flex, не стек)
-  // какое-то время лежат в разметке ОБА: уходящий ещё не получил display:none
-  // (гаснет через HIDE_MS), а приходящий уже занял место. Ряд на этот момент
-  // раздувается, и кажется, что мигнул лишний, третий прибор. Поэтому если
-  // в этом вызове что-то скрывается, новые виджеты ждут HIDE_MS и появляются
-  // только когда старые действительно ушли из раскладки.
   let anyHiding = false;
   const toShow = [];
   for (const id of ALL_WIDGETS){
@@ -505,8 +374,6 @@ function applyLayout(mode){
     for (const id of toShow){
       pendingShow.delete(id);
       const el = document.getElementById(id);
-      // за время задержки мог прийти ещё один переключатель режима — не
-      // показываем то, что снова должно быть скрыто
       if (el && curMode === mode) revealWidget(el, id);
     }
   };
@@ -515,7 +382,6 @@ function applyLayout(mode){
     setTimeout(doShow, HIDE_MS);
   }
   else doShow();
-  // тень по краям — только если на этой стороне что-то показывается
   const LEFT_IDS  = ["b-eng", "b-att", "b-spd", "b-alt"];
   const RIGHT_IDS = ["r-spd", "r-alt", "s-spd", "s-eng", "s-att", "s-g"];
   const pl = document.querySelector(".plate.left"), pr = document.querySelector(".plate.right");
@@ -526,32 +392,18 @@ function applyLayout(mode){
   document.body.classList.toggle("mode-pad", mode === "pad");
   document.body.classList.toggle("mode-ship", mode === "ship" || mode === "shipg");
   document.body.classList.toggle("has-att", on.includes("b-att") || on.includes("s-att"));
-  // Верхний бейдж часов по умолчанию ВИДЕН (как на площадке) - прячем его
-  // явным классом, только когда JS реально подтвердил старт. Раньше было
-  // наоборот (виден только при mode-pad) - до первого вызова applyLayout
-  // тело ещё без классов, и бейдж молча прятался с самого начала.
   document.body.classList.toggle("launched-ui", mode !== "pad");
 }
 
-// --------- масштаб полосы под ширину экрана ---------
-// Считаем от фактической ширины САМОЙ полосы, а не от окна. В игре это одно и
-// то же (полоса на всю ширину), но в песочнице панель отъедает слева 340 px:
-// от окна масштаб получался как для широкого экрана, полоса лезла в узкое место
-// и выглядела примерно на 20% крупнее, чем на самом деле. Стенд обязан
-// показывать те же пропорции, что и игра, иначе по нему нельзя судить о размере.
 function fitScale(){
   const bar = document.getElementById("bar");
   const w = (bar && bar.clientWidth) || window.innerWidth;
-  // Раньше делили на 2560 - на типичных игровых разрешениях (1920-2000)
-  // выходило 0.75-0.78, и вся нижняя полоса (гейджи, кольцо двигателей)
-  // читалась мелкой. 2000 даёт масштаб 1.0 уже на распространённом FHD/2K.
   const s = Math.max(.62, Math.min(1.5, w / 2000));
   document.documentElement.style.setProperty("--scale", s.toFixed(3));
   document.documentElement.style.setProperty("--s", Math.max(.5, Math.min(2, w / 1920)).toFixed(4));
 }
 addEventListener("resize", fitScale); fitScale();
 
-// --------- буфер кадров с интерполяцией ---------
 function Chan(){ return { prev:null, next:null, tNext:0, alive:0 }; }
 const B = Chan(), S = Chan();
 
@@ -589,7 +441,6 @@ if (window.chrome && window.chrome.webview){
   });
 }
 
-// --------- круглый прибор ---------
 const RING_D = "M156 922C194.972 922 226 953.752 226 992.841C226 1005.81 222.938 1017.28 215.686 1027.24L215.231 1027.93L208 1023.14L209.418 1021L212.521 1023.05C218.409 1014.4 221 1004.41 221 992.841C221 956.442 192.139 927 156 927C119.861 927 91.0002 956.442 91 992.841C91 1004.1 93.8788 1014.36 99.209 1023L102.231 1021L103.649 1023.14L96.418 1027.93L95 1025.79L95.0371 1025.76C89.1375 1016.26 86 1005.03 86 992.841C86.0002 953.752 117.028 922 156 922Z";
 const GAP = 242, ARC_ROT = 149, R = 66, C = 2 * Math.PI * R, LEN = C * GAP / 360;
 let widgetN = 0;
@@ -626,23 +477,14 @@ function makeGauge(el, cap, unit){
   return { fg: svg.querySelector(".ring-fg"), val: svg.querySelector(".g-val") };
 }
 
-// На трансляции прибор не выскакивает сразу с готовым значением: кольцо
-// "разворачивается" от пустого к текущему отсчёту примерно за секунду, и
-// только после этого дальше следует за данными как обычно. sweep=true —
-// разовый взвод, происходит один раз при появлении виджета.
 function setGauge(g, value, frac, digits, sweep){
   g.val.textContent = value === null ? "—" : value.toFixed(digits);
   const f = Math.max(0, Math.min(1, frac || 0));
   const target = (LEN * (1 - f)).toFixed(2);
-  g._target = target;   // читает второй этап взвода - всегда свежее значение,
-                         // а не то, что было в момент запуска (данные растут)
+  g._target = target;
   const now = performance.now();
   if (sweep){
-    // Кольцо-значение дорисовывается ТОЛЬКО до фактического отсчёта, не дальше
-    // (при значении 0 полный оборот выглядел так, будто данные есть, а их
-    // нет - дуга серого трека вокруг уже даёт понятное появление сама по
-    // себе). Один разворот: пусто -> реальная цель.
-    g._sweepUntil = now + 1080;   // else-ветка не мешает, пока взвод идёт
+    g._sweepUntil = now + 1080;
     g.fg.style.transitionDuration = "0s";
     g.fg.setAttribute("stroke-dashoffset", LEN.toFixed(2));
     void g.fg.getBoundingClientRect();
@@ -650,17 +492,7 @@ function setGauge(g, value, frac, digits, sweep){
     g.fg.style.transitionTimingFunction = "cubic-bezier(.16,.82,.2,1)";
     requestAnimationFrame(() => g.fg.setAttribute("stroke-dashoffset", g._target));
   } else if (now < (g._sweepUntil || 0)){
-    // Взвод (полный оборот + усадка) ещё не доехал. Раньше обычное обновление
-    // тут же сбрасывало переход и вставало на целевое значение - двухфазная
-    // анимация обрывалась на первом же следующем кадре render(), не успев
-    // толком начаться. Пока взвод идёт, обычные обновления не вмешиваются.
   } else {
-    // Сброс переопределения из sweep - НЕ по таймеру на равных правах со
-    // взводом, а через собственное окно g._sweepUntil выше. Раньше снимался
-    // через 1150 мс по часам независимо от взвода, а данные тем временем идут
-    // каждые ~100 мс: пока не истёк, КАЖДОЕ следующее значение тоже наследовало
-    // медленный переход и гналось за уже уехавшей целью - разворот кольца
-    // визуально никогда не доезжал до текущего числа.
     g.fg.style.transitionDuration = "";
     g.fg.style.transitionTimingFunction = "";
     g.fg.setAttribute("stroke-dashoffset", target);
@@ -669,18 +501,13 @@ function setGauge(g, value, frac, digits, sweep){
 
 const gBspd = makeGauge($("b-spd"), "Speed", "km/h");
 const gBalt = makeGauge($("b-alt"), "Altitude", "km");
-const gRspd = makeGauge($("r-spd"), "Speed", "km/h");   // те же данные ускорителя,
-const gRalt = makeGauge($("r-alt"), "Altitude", "km");  // но в режиме до разделения
+const gRspd = makeGauge($("r-spd"), "Speed", "km/h");
+const gRalt = makeGauge($("r-alt"), "Altitude", "km");
 const gSspd = makeGauge($("s-spd"), "Speed", "km/h");
 const gSg   = makeGauge($("s-g"),   "G-Force", "g");
 
-// --------- кольца двигателей ---------
-// то же кольцо, что и у приборов
 const F_LEN = LEN;
 
-// Если рядом лежит ui/img/<name>.json (координаты, снятые detect-engines.py
-// с картинки-референса) — раскладываем сопла ровно по ним. Иначе берём
-// расчётные кольца ниже.
 async function applyDetected(el, ring, name){
   try{
     const r = await fetch(`img/${name}.json`, { cache:"no-store" });
@@ -701,11 +528,9 @@ async function applyDetected(el, ring, name){
       ring.dots.push(c);
     }
     console.log(`раскладка ${name}: ${pts.length} сопел с картинки`);
-  } catch { /* нет файла — остаёмся на расчётной раскладке */ }
+  } catch {  }
 }
 
-// Сопло = серая точка (.engdot, белый 50%) + белая копия поверх (.lit), которая
-// при зажигании вырастает из нуля до размера точки.
 function ringPts(groups){
   const pts = [];
   for (const g of groups)
@@ -739,7 +564,6 @@ function buildEngines(el, pts){
   return { dots, bases, fuel: svg.querySelector(".fuel-fg") };
 }
 
-// остаток топлива дугой вокруг двигателей (0..100 %)
 function setFuel(ring, pct, sweep){
   const f = Math.max(0, Math.min(1, (pct ?? 0) / 100));
   const target = (F_LEN * (1 - f)).toFixed(2);
@@ -754,19 +578,13 @@ function setFuel(ring, pct, sweep){
     ring.fuel.style.transitionTimingFunction = "cubic-bezier(.16,.82,.2,1)";
     requestAnimationFrame(() => ring.fuel.setAttribute("stroke-dashoffset", ring._target));
   } else if (now < (ring._sweepUntil || 0)){
-    // см. setGauge - взвод ещё не доехал, обычное обновление не вмешивается.
   } else {
-    // см. setGauge - сброс сразу через собственное окно, а не по общему
-    // таймеру, иначе кольцо топлива на взлёте так же никогда не доезжает
-    // до фактического остатка.
     ring.fuel.style.transitionDuration = "";
     ring.fuel.style.transitionTimingFunction = "";
     ring.fuel.setAttribute("stroke-dashoffset", target);
   }
 }
 
-// --------- сфера положения ("визуальное положение") ---------
-// Каркас сферы и линия горизонта неподвижны, силуэт поворачивается по тангажу.
 const BOOSTER_D = "M326.11 932.483V932H312.009V932.483M326.11 932.483L326.348 932.724V936.918L326.11 937.19M326.11 932.483L324.682 937.199M326.11 932.483H323.284M312.009 932.483L311.652 932.785V936.888L312.009 937.199M312.009 932.483H314.924M312.009 932.483L313.378 937.199M326.11 937.19V938.729M321.856 937.199H324.682L326.11 937.19M326.11 937.19V935.923C326.11 935.923 323.284 933.599 319 933.599C314.716 933.599 312.009 935.923 312.009 935.923V937.199M326.11 938.729H312.009M326.11 938.729V940.841M312.009 938.729V937.199M312.009 938.729V940.841M312.009 937.199H313.378M324.682 937.199L323.284 932.483M323.284 932.483L321.856 937.199M323.284 932.483H320.398M321.856 937.199L320.398 932.483M321.856 937.199H319M320.398 932.483L319 937.199M320.398 932.483H317.602M319 937.199L317.602 932.483M319 937.199H316.323M317.602 932.483L316.323 937.199M317.602 932.483H314.924M316.323 937.199L314.924 932.483M316.323 937.199H313.378M314.924 932.483L313.378 937.199M312.009 1046.96H326.11M312.307 1047.99L312.158 1047.47L312.009 1046.96V1046M325.604 1047.99L325.857 1047.47L326.11 1046.96V1046M312.009 972.734H326.11M312.009 972.734V970.592M312.009 972.734V1003.21M326.11 972.734V970.592M326.11 972.734V1003.21M326.11 970.592H312.009M326.11 970.592V941.656M312.009 970.592V941.656M326.11 940.841H332V941.656H326.11M326.11 940.841V941.656M312.009 940.841H306V941.656H312.009M312.009 940.841V941.656M326.11 1003.21L327.24 1004.72V1044.91C326.873 1045.25 326.134 1045.95 326.11 1046M326.11 1046V1003.93M327.24 1004.72L326.11 1003.93M326.11 1003.21V1003.93M312.009 1046L310.7 1044.91L310.641 1004.72L312.009 1003.21M312.009 1003.21V1003.93M310.641 1004.72L312.009 1003.93M312.009 1003.93V1046M312.307 1047.99H325.604M312.307 1047.99L311.414 1049.53L311.057 1051.28H313.348M325.604 1047.99L326.318 1049.5C326.477 1050.08 326.788 1051.25 326.764 1051.28H325.277M313.348 1051.28L313.199 1052H325.426L325.277 1051.28M313.348 1051.28H325.277M316.114 940.841H321.856V941.656H316.114V940.841Z";
 const SHIP_D = "M1612.23 1021.12L1620 1036.47V1051L1612.23 1050.98M1612.29 1005.47L1612.23 1021.12V1050.98M1612.43 968.567H1613.47V968.028L1612.43 967.447M1612.43 968.567V967.447M1612.38 981.559L1612.39 979.816L1612.43 968.567M1608.86 943.248L1611.89 956.821L1612.43 958.73V967.447M1611.89 956.821L1618.34 958.606V953.376L1610.19 943.622L1608.86 943.248M1608.86 943.248L1604.58 933.245L1603.87 932.291L1603.21 932H1602.67L1601.96 932.125L1601 933.245L1596.76 943.248M1596.76 943.248L1595.64 943.622L1594.64 944.618L1587.16 953.376V958.73L1593.44 956.821M1596.76 943.248L1593.44 956.821M1593.44 956.821L1593.06 958.73L1592.98 967.447M1592.98 967.447L1591.82 968.194V968.734H1592.98M1592.95 979.816L1592.98 968.734V967.447M1592.81 1021.78L1585 1036.35V1050.92L1592.61 1050.94M1592.87 1005.47L1592.81 1021.78L1592.61 1050.94M1592.61 1050.94L1612.23 1050.98M1592.87 1004.35L1612.29 1004.43M1592.95 979.816L1592.94 981.435L1592.87 1004.35L1592.87 1005.47M1612.38 981.559L1612.29 1004.43L1612.29 1005.47M1612.29 1005.47H1592.87M1592.95 979.816H1612.39M1612.38 981.559L1592.94 981.435M1610.31 970.311L1595.06 970.187L1594.98 970.186L1594.77 969.73V967.364L1610.61 967.447V969.854L1610.44 970.311H1610.31ZM1595.06 970.187V967.903H1610.31V970.311";
 
@@ -789,20 +607,14 @@ function buildAtt(el, gid, d, cx, cy){
 const craftG = buildAtt($("b-att"), "craft", BOOSTER_D, 319, 992);
 const shipG  = buildAtt($("s-att"), "shipcraft", SHIP_D, 1602.5, 991.5);
 
-// Starship: 3 вакуумных (крупные, снаружи) + 3 забортных (мелкие, внутри)
-// Starship с референса: 3 вакуумных (крупные, треугольником вершиной вниз)
-// и 3 забортных (мелкие) в центре.
 const sRing = buildEngines($("s-eng"), ringPts([
   { n:3, r:30.6, d:14.57, rot:Math.PI },
   { n:3, r:9.24, d:6 }
 ]));
 
-// Углы и радиусы сопел на картинках мода (0 = вверх, по часовой), замерены по
-// самим PNG. Кольца: 0-2 центральные, 3-12 средний круг, 13-32 внешний.
 const ART_ANG = [0.8,112.2,247.0,0.4,34.5,69.7,105.1,142.2,179.6,217.5,255.0,290.4,325.9,
                  8.9,26.5,44.0,61.6,79.4,97.5,115.6,133.9,152.3,170.6,189.0,207.6,225.9,
                  244.4,262.5,280.6,298.4,316.2,333.8,351.4];
-// То же для набора Block 3 (img/eng-booster3): средний круг повёрнут на полшага.
 const ART_ANG3 = [356.9,119.5,246.6,197.3,234.4,271.3,308.0,344.1,19.6,54.6,89.5,124.8,160.7,
                   188.8,207.0,225.3,243.5,261.8,280.0,298.3,316.4,334.4,352.4,10.2,28.0,45.7,
                   63.4,81.1,98.7,116.5,134.4,152.4,170.5];
@@ -810,10 +622,6 @@ const ART_RINGS = [[0,1,2],
                    [3,4,5,6,7,8,9,10,11,12],
                    [13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32]];
 
-// Super Heavy: сопло i стоит там же, где сопло i на картинке мода (номер
-// сопла = номер картинки, на нём держится вся подсветка), но векторной точкой
-// по центру кольца, радиусы колец и размер сопел из макета. Картинки были
-// развёрнуты на 180 — как смотришь на ступень снизу, отсюда +180.
 const ART_R = [9.3, 24.8, 42.3];
 function artPts(angs){
   return angs.map((a, i) => {
@@ -826,9 +634,6 @@ const bLit = bRing.dots;
 
 let ENG_MAP = null, ENG_GEOM_SRC = "";
 
-// Тег детали не говорит, где двигатель стоит физически: у Block 3 средний круг
-// повёрнут не так, как на картинках мода. Поэтому раскладку берём из геометрии
-// сборки и подбираем циклический сдвиг кольца с наименьшей угловой ошибкой.
 function buildEngMap(geom){
   const items = geom.split(",").map((t, i) => {
     if (!t || t === "-") return null;
@@ -848,7 +653,7 @@ function buildEngMap(geom){
     const eng = present.filter(o => ringOf(o.r) === ring).sort((x, y) => x.a - y.a);
     const art = ART_RINGS[ring].slice().sort((x, y) => ART_ANG[x] - ART_ANG[y]);
     if (!eng.length) continue;
-    if (eng.length !== art.length){          // состав не совпал — раскладываем по порядку
+    if (eng.length !== art.length){
       eng.forEach((o, k) => { if (art[k] !== undefined) map[o.i] = art[k]; });
       continue;
     }
@@ -864,10 +669,8 @@ function buildEngMap(geom){
   return map;
 }
 
-let engArt = "";   // какая раскладка сопел сейчас показана
+let engArt = "";
 
-// У Block 3 кольца повёрнуты иначе, чем в базовой раскладке.
-// Пока показывали базовую, средний круг стоял не так, как в игре.
 function setEngineArt(b3){
   const set = b3 ? "b3" : "base";
   if (set === engArt) return;
@@ -878,9 +681,7 @@ function setEngineArt(b3){
 function paintLit(lit, active, mask, geom){
   if (!lit) return;
   if (geom && geom !== ENG_GEOM_SRC){ ENG_GEOM_SRC = geom; ENG_MAP = buildEngMap(geom); }
-  // Точная маска: горят именно те сопла, что работают в игре, а не первые N.
   if (mask && mask.length === lit.length && !ENG_MAP){
-    // геометрии нет — номера маски совпадают с номерами картинок мода
     for (let i = 0; i < lit.length; i++) lit[i].classList.toggle("on", mask[i] === "1");
     return;
   }
@@ -895,19 +696,12 @@ function paintLit(lit, active, mask, geom){
   for (let i = 0; i < lit.length; i++) lit[i].classList.toggle("on", i < active);
 }
 
-// Кольцо корабля: первые три точки — ВАКУУМНЫЕ (крупные, снаружи), следующие
-// три — ЗАБОРТНЫЕ (мелкие, в центре). На посадке работают именно забортные,
-// а по общему счётчику зажигались крайние вакуумные.
 function paintShipEngines(ring, sl, vac, mask){
   const d = ring.dots;
   const useMask = typeof mask === "string" && mask.length >= d.length;
   for (let i = 0; i < d.length; i++){
     const isVac = i < 3;
-    // Раньше после посадки вакуумные сопла убирались совсем, и кольцо выглядело
-    // так, будто их у корабля нет. Показываем всегда, погашенными.
     d[i].style.display = "";
-    // Если корабль прислал маску — светим ровно те сопла, что горят, а не
-    // «первые N». Порядок в маске: 3 вакуумных, затем 3 забортных.
     const on = useMask ? mask[i] === "1"
                        : (isVac ? (i < vac) : ((i - 3) < sl));
     d[i].classList.toggle("on", on);
@@ -919,85 +713,37 @@ function paint(ring, active){
   for (let i = 0; i < d.length; i++) d[i].classList.toggle("on", i < active);
 }
 
-// --------- дуга миссии ---------
-// Метка «сейчас» неподвижна вверху по центру, вехи едут по дуге и поворачиваются
-// вместе с ней. Кривизна дуги зависит от ВЫСОТЫ: у земли линия прямая и под ней
-// ничего нет, с подъёмом она выгибается и снизу проступает диск Земли — как будто
-// мы отдаляемся и начинаем видеть горизонт.
-// t — усреднённое время по фактическим полётам (IFT 13, KSRSS + Block 3).
-// Пока аппарат не пошёл вниз, предсказание Trajectories бессмысленно, поэтому
-// до glide веха стоит именно на этой средней цифре, а потом переезжает на факт.
 const MS = [
   { id:"liftoff", t:0,   label:"Liftoff" },
-  // Все t - в часах УСКОРИТЕЛЯ (у него MET 0 = T-0). Про часы корабля см. msShipOffset.
-  // evmaxq по логам: 48.5, 51.9, 49.5, 52.3, 53.9 (5 полётов, Block3) = 51.2.
   { id:"maxq",    t:51,  label:"Max Q",               ev:"evmaxq", scale:"burn" },
-  // evsep: 107.9, 108.3, 107.9, 107.5 (4 полёта) = 107.9. Разброс 0.8 с - веха
-  // стабильная. Старое "112-117" было прикидкой ещё до починки SeparationTime.
   { id:"sep",     t:108, label:"Stage Sep",           ev:"evsep",  scale:"burn" },
-  // 321.1, 335.4 (evland) + ~345, ~344.1, ~345.5 (полёты, где evland не сработал -
-  // взято пересечение RadarAlt нуля по логу). Среднее 338.2.
-  // Причина несрабатывания найдена: LandingTime ставился после всей хореографии
-  // выключения. Теперь есть TouchdownTime по факту контакта.
   { id:"shland",  t:338, label:"Super Heavy Landing", ev:"evland", eta:"evlandeta", scale:"afterSep" },
-  // SECO - событие КОРАБЛЯ. Раньше веха читала evseco из канала ускорителя, где
-  // он всегда -1, поэтому она физически не могла сработать ни разу. Добавлен
-  // src:"ship" и перевод часов. Факт по логу корабля: evseco = 375.7 в его
-  // часах = 341.7 в часах ускорителя.
-  // doneFlag - признак "событие уже было, а когда именно, неизвестно". Нужен
-  // после перезапуска скрипта: ShipSECOTime обнуляется, факта нет, и веха
-  // снова показывалась предстоящей, хотя корабль давно на орбите.
   { id:"seco",    t:338, label:"SECO",                ev:"evseco", eta:"evsecoeta", doneFlag:"secodone", src:"ship", scale:"afterSep" },
-  // armFlag - "веха ещё не запланирована". Пока корабль на орбите, времени
-  // посадки не существует, и метку нельзя тащить за текущей отметкой: веха
-  // просто не показывается, пока аппарат не сообщит, что сход с орбиты сделан.
   { id:"shipland",t:719, label:"Starship Landing",    ev:"evshipland", eta:"evshiplandeta", armFlag:"landarmed", src:"ship", scale:"afterSep" }
 ];
 
-// ---- Часы корабля не совпадают с часами ускорителя -------------------------
-// У ускорителя MET 0 = T-0: только он получает Countdown и ставит missionTimer.
-// У корабля отсчёт идёт от KSP-шного missionTime и на старте показывает уже ~34 с.
-// Любое ev* из канала корабля надо переводить, иначе веха уезжает на полминуты.
-// Считаем сдвиг по самим кадрам, а не константой: в обоих есть и met, и настенное
-// время t, поэтому приводим к одному моменту.
 function msShipOffset(){
   const b = B.next, sh = S.next;
   if (!b || !sh) return 0;
   if (typeof b.met !== "number" || typeof sh.met !== "number") return 0;
   if (typeof b.t   !== "number" || typeof sh.t   !== "number") return 0;
   const off = sh.met - b.met - sh.t + b.t;
-  return (off > 5 && off < 120) ? off : 0;   // вне разумного - не доверяем
+  return (off > 5 && off < 120) ? off : 0;
 }
 
-// ---- Ожидаемое время вехи под КОНКРЕТНУЮ загрузку --------------------------
-// Раньше до наступления события веха стояла на средней цифре по прошлым полётам.
-// Но один и тот же оверлей летает и с тяжёлым грузом, и налегке: тяжелее старт -
-// позже всё. Для вех НА РАБОТЕ ПЕРВОЙ СТУПЕНИ время набора заданного dv при
-// постоянной тяге даёт уравнение Циолковского:
-//     t = (Isp / TWR0) * (1 - exp(-dv / (Isp * g0)))
-// Здесь Isp/TWR0 = m0/ṁ - характерное время расхода, и масса входит именно через
-// него. dv у вехи один и тот же от полёта к полёту (профиль подъёма не меняется),
-// поэтому считаем его ОДИН раз из опорного полёта, обращая ту же формулу; потери
-// на гравитацию и сопротивление при этом впитываются в dv.
-//
-// ОГРАНИЧЕНИЕ: после разделения тягу даёт корабль, и формула к нему неприменима
-// (для SECO уходит под логарифм отрицательного). Такие вехи привязаны к
-// разделению и едут ВМЕСТЕ с ним, сохраняя свой отступ.
-const MS_REF_TWR = 1.44;   // TWR отрыва в опорном полёте: 17.5 МН / 1241 т
-const MS_ISP     = 310;    // эффективный Isp первой ступени, с (расход 5.74 т/с)
+const MS_REF_TWR = 1.44;
+const MS_ISP     = 310;
 const MS_G0      = 9.80665;
-const MS_SEP_REF = 108;    // разделение в опорном полёте, с
+const MS_SEP_REF = 108;
 
 function msTWR(){
   const v = B.next && B.next.lotwr;
-  // Замер снимается в момент отрыва. Пока его нет или он бредовый - формулу не
-  // применяем вовсе и работаем по старой средней цифре, как раньше.
   return (typeof v === "number" && v > 0.5 && v < 5) ? v : 0;
 }
 
 function msBurnTime(tRef, twr){
   const k = 1 - tRef * MS_REF_TWR / MS_ISP;
-  if (!(k > 0)) return tRef;                 // вне области применимости
+  if (!(k > 0)) return tRef;
   const dv = -MS_ISP * MS_G0 * Math.log(k);
   return (MS_ISP / twr) * (1 - Math.exp(-dv / (MS_ISP * MS_G0)));
 }
@@ -1017,21 +763,6 @@ function msApriori(m){
   return m.t;
 }
 
-// ---- Состояние вехи -------------------------------------------------------
-// У вехи РОВНО два состояния, и оба определяются ОДНИМ источником - фактом от
-// аппарата. Раньше состояние и положение считались по разным правилам и могли
-// расходиться: метка уезжала левее текущей отметки по априорной оценке, что
-// читается ровно как "веха сработала", хотя события ещё не было.
-//
-//   pending - факта нет. Не подсвечена НИКОГДА, и её метка не может оказаться
-//             левее текущей отметки, чем бы ни была занята оценка времени.
-//   done    - факт пришёл. Подсвечена, метка стоит на фактическом времени.
-//
-// Второе изменение: "пройдено" больше не считается как met >= факт. Для вех
-// корабля в это сравнение входил перевод часов, и ошибка сдвига в пару секунд
-// зажигала веху раньше события. Факт публикуется аппаратом ПОСЛЕ события -
-// значит само его наличие и есть "случилось". Сдвиг часов теперь влияет
-// только на ПОЛОЖЕНИЕ метки, то есть на косметику.
 function msFact(m){
   if (!m.ev) return null;
   const ch = m.src === "ship" ? S : B;
@@ -1051,16 +782,11 @@ function msEta(m){
 }
 
 function msState(m, met){
-  // Liftoff факта не имеет: он и есть нуль часов ускорителя. До T-0 met
-  // отрицательное, поэтому сравнение честное.
   if (!m.ev) return { t: m.t, done: met >= m.t };
 
   const f = msFact(m);
   if (f !== null) return { t: f, done: true };
 
-  // Факта нет, но аппарат сообщает, что событие уже позади (например, после
-  // перезапуска скрипта корабль уже на орбите). Зажигаем веху и ставим метку
-  // по априорной оценке, но НЕ правее текущей отметки: событие точно в прошлом.
   if (m.doneFlag){
     const ch = m.src === "ship" ? S : B;
     if (ch.next && ch.next[m.doneFlag] === true)
@@ -1069,9 +795,6 @@ function msState(m, met){
 
   const e = msEta(m);
 
-  // Веха, которая ещё не запланирована и не имеет собственного прогноза, не
-  // показывается вовсе. Иначе она встаёт на априорную оценку и приклеивается
-  // к текущей отметке, изображая скорое событие всё время, пока его нет.
   if (m.armFlag && e === null){
     const ch = m.src === "ship" ? S : B;
     if (!(ch.next && ch.next[m.armFlag] === true))
@@ -1082,45 +805,28 @@ function msState(m, met){
   return { t: Math.max(est, met), done: false };
 }
 
-// Размеры пересчитываются под фактическую ширину слоя, поэтому 1 единица svg
-// равна 1 пикселю и текст не растягивается.
 let VB_W = 980, VB_H = 150;
 let CX = VB_W / 2;
-let TOP_Y = 26;                      // высота вершины дуги внутри svg
+let TOP_Y = 26;
 let HALF_W = VB_W / 2;
-const SPAN_SEC = 320;                // сколько секунд миссии видно на всей ширине
-const MAX_SAG_FRAC = 2.85;           // прогиб на 80 км, в долях высоты слоя:
-                                     // края окружности уходят ЗА нижний край полосы
-const CURVE_LO = 10000;              // ниже этой высоты линия прямая
-const CURVE_HI = 80000;              // здесь кривизна максимальна и круг виден целиком
+const SPAN_SEC = 320;
+const MAX_SAG_FRAC = 2.85;
+const CURVE_LO = 10000;
+const CURVE_HI = 80000;
 
-let sag = 0;                         // текущий прогиб краёв, 0 = прямая
-let curve = 0;                       // 0 — прямая линия, 1 — полный круг
+let sag = 0;
+let curve = 0;
 
-// Доля кривизны по высоте: у земли 0, к разделению (~40 км) заметно скруглено,
-// к 80 км круг Земли виден полностью.
 function curveForAlt(alt){
   const t = Math.max(0, Math.min(1, (alt - CURVE_LO) / (CURVE_HI - CURVE_LO)));
-  return t * t * (3 - 2 * t);        // smoothstep, чтобы не дёргалось на старте
+  return t * t * (3 - 2 * t);
 }
-// Окружность задаём НЕ прогибом, а точкой, где горизонт уходит за нижний край
-// полосы: с высотой она едет к центру, то есть круг становится круче. Через
-// прогиб получалось наоборот — чем выше, тем площе.
-// Точка, где горизонт уходит за нижний край полосы. Привязана к СВОБОДНОЙ ЗОНЕ:
-// как только круг заметен, он обязан замкнуться внутри неё, иначе линия обрывается
-// в воздухе. Кубический член держит линию почти прямой у земли.
 function exitXFor(c){
   const want = FREE_HALF * (1.72 - 0.47 * c) + HALF_W * 2.5 * Math.pow(1 - c, 3);
-  // Шире свободной зоны линию всё равно не нарисовать. Если точка ухода за кадр
-  // оказалась за приборами, круг делаем круче, чтобы он успел уйти вниз внутри
-  // зоны — иначе конец линии обрывается в воздухе. Только сужает, не расширяет.
   const fits = FREE_HALF * (0.92 + 0.08 * c) * 0.97;
   const k = Math.max(0, Math.min(1, (c - 0.45) / 0.25));
   return Math.min(want, want * (1 - k) + fits * k);
 }
-// Низ ЭКРАНА в координатах слоя: слой дуги кончается выше нижнего края кадра
-// (bottom у #arcwrap), а линия обязана уходить за сам кадр. Считали от низа
-// слоя — дуга обрывалась в воздухе на десятки пикселей выше края.
 function screenBottomY(){ return VB_H + Math.max(0, BELOW - 40); }
 function arcRadiusFor(c){
   const d = Math.max(1, screenBottomY() - TOP_Y), x = exitXFor(c);
@@ -1132,10 +838,8 @@ function sagForAlt(alt){
   const R = arcRadiusFor(c), w = visHalfFor(c);
   return R - Math.sqrt(Math.max(0, R * R - w * w));
 }
-// радиус окружности, дающей такой прогиб на полуширине HALF_W
 function sagRadius(sg){ const w = VIS_HALF || HALF_W; return (w * w + sg * sg) / (2 * sg); }
 
-// точка дуги по горизонтальному смещению от центра + наклон касательной
 function ptAtDX(dx){
   if (sag < 0.6) return { x: CX + dx, y: TOP_Y, deg: 0 };
   const R = sagRadius(sag);
@@ -1143,9 +847,6 @@ function ptAtDX(dx){
   const deg = Math.asin(Math.max(-1, Math.min(1, dx / R))) * 180 / Math.PI;
   return { x: CX + dx, y, deg };
 }
-// Полигон «под горизонтом»: верхняя кромка идёт по окружности, но не опускается
-// ниже полосы. Там, где горизонт уже ушёл вниз, полигон сам сходит на нет —
-// поэтому нет ни прямого среза, ни дырки на краю.
 function earthD(R, dy){
   const off = dy || 0;
   const g = R;
@@ -1153,7 +854,7 @@ function earthD(R, dy){
     ? TOP_Y + off
     : Math.min(VB_H + BELOW, TOP_Y + off + R - Math.sqrt(Math.max(0, R * R - dx * dx)));
   const W = VIS_HALF || HALF_W;
-  const BOT = VB_H + BELOW;            // ниже нижнего края экрана
+  const BOT = VB_H + BELOW;
   const N = 64, pts = [];
   for (let i = 0; i <= N; i++){
     const dx = -W + (2 * W) * (i / N);
@@ -1163,9 +864,6 @@ function earthD(R, dy){
        + `L ${(CX - W).toFixed(1)} ${BOT} Z`;
 }
 
-// Дуга по ЯВНОМУ радиусу: нужна для внутренней окружности, которая должна быть
-// концентрической основной. Через прогиб радиус пересчитывался от другой
-// полуширины, и дуги пересекались.
 function arcDR(dxFrom, dxTo, R, dy){
   const off = dy || 0;
   const yAt = dx => TOP_Y + off + R - Math.sqrt(Math.max(0, R * R - dx * dx));
@@ -1190,12 +888,10 @@ function arcD(dxFrom, dxTo, sg, dy){
 const arcSvg = $("arcsvg");
 const msNodes = {};
 
-let BELOW = 0;                       // на сколько заливка уходит ниже слоя
-let VIS_HALF = 0;                    // до какого места дуга вообще рисуется
-let FREE_HALF = 0;                   // граница свободной зоны: до приборов, не дальше
+let BELOW = 0;
+let VIS_HALF = 0;
+let FREE_HALF = 0;
 
-// Дуга не должна залезать на телеметрию по краям — ни прямой, ни кругом.
-// Ограничение берём из реального положения боковых панелей.
 function measureFree(){
   const s = Math.max(.5, Math.min(2, VB_W / 1920));
   const lim = Math.min(CX - 395 * s, (VB_W - 394.5 * s) - CX) - 14;
@@ -1203,16 +899,10 @@ function measureFree(){
 }
 
 function visHalfFor(c){
-  // не уже свободной зоны, но и не короче точки, где горизонт уходит вниз:
-  // иначе на узком экране линия обрывалась бы в воздухе, не дойдя до края
-  const free = FREE_HALF * (0.92 + 0.08 * c);   // на широком экране линия длиннее
-  if (c < 0.05) return free;                 // прямая живёт только в свободной зоне
-  // Дальше приборов не лезем ни при каких условиях; если точка ухода дуги за
-  // нижний край ещё дальше — просто обрываем по границе свободной зоны.
-  // Верхний предел — сам радиус: за ним окружности уже нет и путь срезался бы плашмя.
+  const free = FREE_HALF * (0.92 + 0.08 * c);
+  if (c < 0.05) return free;
   return Math.min(free, Math.max(free * 0.5, exitXFor(c) * 1.02), arcRadiusFor(c) * 0.985);
 }
-// полуширина зоны, где вообще допустимы подписи вех
 function msHalf(){ return FREE_HALF * 0.92; }
 
 function fitArc(){
@@ -1221,14 +911,12 @@ function fitArc(){
   if (!w || !h) return;
   VB_W = w; VB_H = h;
   CX = w / 2; HALF_W = w / 2;
-  TOP_Y = Math.round(h * 0.12);      // 0.12 от новой высоты слоя = прежние 27px*scale
+  TOP_Y = Math.round(h * 0.12);
   const wrapBox = $("arcwrap").getBoundingClientRect();
   BELOW = Math.max(0, window.innerHeight - wrapBox.bottom) + 40;
   measureFree();
   VIS_HALF = visHalfFor(curve);
   arcSvg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-  // Область масок задаём явно: по умолчанию она 120% от слоя, и WebView2 резал
-  // по ней и линию, и диск. В браузере это не воспроизводилось.
   for (const id of ["edgefade", "earthfade"]){
     const m = arcSvg.querySelector("#" + id);
     if (!m) continue;
@@ -1252,8 +940,6 @@ let earthPath, arcInner, arcLit, arcDim, tick;
          <rect id="fadrect" fill="url(#fadegrad)"/>
        </mask>
        <clipPath id="bandclip"><rect id="cliprect"/></clipPath>
-       <!-- Заливке нужна СВОЯ, куда более широкая растушёвка: у линии край почти
-            жёсткий, а тёмный диск обязан растворяться, иначе виден его обрез. -->
        <linearGradient id="earthgrad" x1="0" y1="0" x2="1" y2="0">
          <stop offset="0"    stop-color="#000"/>
          <stop id="e1" offset="0.34" stop-color="#fff"/>
@@ -1263,9 +949,6 @@ let earthPath, arcInner, arcLit, arcDim, tick;
        <mask id="earthfade" maskUnits="userSpaceOnUse">
          <rect id="earthrect" fill="url(#earthgrad)"/>
        </mask>
-       <!-- Диск Земли должен ТЕМНЕТЬ книзу, а не растворяться: раньше он уходил
-            в прозрачность, и тёмное оставалось только узкой полосой под линией —
-            выглядело так, будто круг висит в воздухе. -->
        <linearGradient id="earthfill" gradientUnits="userSpaceOnUse"
                        x1="0" y1="0" x2="0" y2="100">
          <stop offset="0"   stop-color="rgba(6,11,18,.28)"/>
@@ -1318,10 +1001,6 @@ let earthPath, arcInner, arcLit, arcDim, tick;
   fitArc();
 })();
 
-// Уровни подписей у дуги: сошедшиеся вехи (например SECO и посадка ускорителя,
-// у нас разошлись на секунду) расходятся, а не налезают друг на друга. Раньше
-// уезжали только вверх и в три этажа быстро кончалось место; теперь ближайшая
-// свободная позиция ищется поочерёдно то сверху, то снизу от дуги.
 const MS_LEVELS = [-15, 22, -38, 45, -61];
 
 function paintArc(met, alt){
@@ -1329,10 +1008,7 @@ function paintArc(met, alt){
   if (!isFinite(alt)) alt = 0;
   curve = curveForAlt(alt);
   sag = sagForAlt(alt);
-  if (!FREE_HALF) fitArc();          // панели могли ещё не быть разложены на старте
-  // BELOW считался ОДИН раз при разборе страницы, когда вёрстка ещё не улеглась,
-  // и в окне оверлея (оно не меняет размер) так и оставался неверным — маска
-  // резала диск по низу слоя. Пересчитываем каждый кадр, это дёшево.
+  if (!FREE_HALF) fitArc();
   {
     const wb = $("arcwrap").getBoundingClientRect();
     if (wb.height) BELOW = Math.max(0, window.innerHeight - wb.bottom) + 40;
@@ -1342,11 +1018,7 @@ function paintArc(met, alt){
   arcLit.setAttribute("d", arcD(-VIS_HALF, 0));
   arcDim.setAttribute("d", arcD(0, VIS_HALF));
 
-  // Растушёвка концов пропадает вместе с прямизной: круг Земли должен доходить
-  // до самых краёв экрана целиком, вместе с белой линией.
   const over = (exitXFor(curve) - FREE_HALF) / Math.max(1, FREE_HALF);
-  // Если конец линии уже ниже края кадра — гасить нечего: она и так уходит
-  // за экран. Растушёвка там только делала обрыв заметнее.
   const exiting = Math.max(0, Math.min(1, (TOP_Y + sag - (screenBottomY() - 26)) / 26));
   const fadeFrac = (0.07 + 0.13 * Math.max(0, Math.min(1, over * 2))) * (1 - exiting)
                  + 0.012 * exiting;
@@ -1355,8 +1027,6 @@ function paintArc(met, alt){
   const fr = arcSvg.querySelector("#fadrect");
   fr.setAttribute("x", (CX - VIS_HALF).toFixed(1));
   fr.setAttribute("width", (2 * VIS_HALF).toFixed(1));
-  // Маска обрывалась по низу СЛОЯ, а слой кончается выше края кадра — линия
-  // исчезала в воздухе над приборами. Тянем маску туда же, куда и заливку.
   fr.setAttribute("y", -200); fr.setAttribute("height", VB_H + BELOW + 200);
   const er = arcSvg.querySelector("#earthrect");
   er.setAttribute("x", (CX - VIS_HALF).toFixed(1));
@@ -1370,14 +1040,11 @@ function paintArc(met, alt){
   cr.setAttribute("x", 0); cr.setAttribute("width", VB_W);
   cr.setAttribute("y", -200); cr.setAttribute("height", VB_H + 200);
 
-  // Вторая, внутренняя окружность и тень под ней появляются только когда
-  // линия перестала быть прямой — то есть когда стало видно кривизну Земли.
   if (curve < 0.02){
     earthPath.setAttribute("opacity", 0);
     arcInner.setAttribute("opacity", 0);
   } else {
     const k = Math.min(1, curve / 0.75);
-    // тот же центр окружности, радиус меньше на dy2 — дуги параллельны и не пересекаются
     const dy2 = Math.max(8, VB_H * 0.13);
     const R2  = Math.max(20, sagRadius(sag) - dy2);
     const w2  = Math.min(VIS_HALF, R2 * 0.999);
@@ -1436,48 +1103,32 @@ function hms(s){
   return `${h}:${m}:${q}`;
 }
 
-// --------- кадр ---------
 function render(){
   requestAnimationFrame(renderSafe);
 
   const bOK = fresh(B), sOK = fresh(S);
   document.body.classList.toggle("stale", !bOK && !sOK);
 
-  // Режим по фазе ускорителя: idle -> до отделения, boostback -> обе ступени,
-  // descent/landing/landed -> возврат, слева двигатели и высота.
   const ph = bOK ? (B.next.phase || "idle") : "idle";
 
-  // Момент hot-stage: разделение закончилось и бустер входит в буст-бэк.
-  // b-eng виден непрерывно и до, и после (33 движка -> 3), поэтому обычное
-  // появление виджета тут не срабатывает - анимацию проигрываем явно, чтобы
-  // сразу было видно, как двигатели переключаются под манёвр.
   if (ph === "boostback" && lastPhase !== "boostback"){
     revealEngines("b-eng");
     pendingSweep.add("b-eng");
   }
   lastPhase = ph;
 
-  // Факт старта фиксируем защёлкой: на площадке телеметрии по бокам нет,
-  // как на трансляции — только центральные часы. Сбрасывается новым отсчётом.
-  // Приборы выезжают за SHOW_AT секунд до старта, а не по факту отрыва.
   if (bOK){
     const mt = B.next.met ?? 0;
     if (mt < SHOW_AT - 1) launched = false;
     else if (mt >= SHOW_AT || (B.next.spd ?? 0) > 5 || (B.next.vs ?? 0) > 2 || ph !== "idle") launched = true;
   } else if (sOK){
-    // Ускорителя может не быть вовсе (его скрипт закончился или упал) — тогда
-    // факт старта определяем по кораблю, иначе на площадке вылезут приборы.
     const mt = S.next.met ?? 0;
     if (mt < SHOW_AT - 1) launched = false;
     else if (mt >= SHOW_AT || (S.next.spd ?? 0) > 5 || (S.next.alt ?? 0) > 500) launched = true;
   }
 
-  // Кольцо двигателей ускорителя показываем только на последнем километре;
-  // до того слева стоит скорость.
   const radar = bOK ? (B.next.radar ?? 1e9) : 1e9;
   const back = (ph === "descent" || ph === "landing" || ph === "landed");
-  // Корабль один: двигатели показываем, пока они работают и снова с 10 км на
-  // посадке; между этим на их месте — перегрузка.
   const sEngOn = sOK && ((S.next.engact ?? 0) > 0 || (S.next.alt ?? 1e9) < SHIP_ENG_AT);
   const mode = !launched ? "pad"
              : !bOK ? (sOK ? (sEngOn ? "ship" : "shipg") : "pad")
@@ -1494,12 +1145,10 @@ function render(){
     setGauge(gRalt, alt, alt / 130, 1, takeSweep("r-alt"));
     setEngineArt(!!B.next.b3);
     paintLit(bLit, Math.round(B.next.engact ?? 0), B.next.engmask, B.next.enggeom);
-    // топливо ускорителя — по лимитирующему компоненту
     setFuel(bRing, Math.min(B.next.lfpct ?? 0, B.next.oxpct ?? 0), takeSweep("b-eng"));
     const pit = ang(B, "pitch") ?? 0;
     craftG.setAttribute("transform", `rotate(${pit.toFixed(1)})`);
   } else if (sOK){
-    // Ускоритель отработал и молчит — слева идут данные корабля.
     const sspd = lerp(S,"spd") * 3.6, salt = Math.max(0, lerp(S,"alt") / 1000);
     setGauge(gBspd, sspd, sspd / SHIP_SPD_FULL_KMH, 0, takeSweep("b-spd"));
     setGauge(gBalt, salt, salt / SHIP_ALT_FULL_KM, 1, takeSweep("b-alt"));
@@ -1522,12 +1171,6 @@ function render(){
     const g = S.next.g ?? 0;
     setGauge(gSg, g, g / 6, 1, takeSweep("s-g"));
     const sp = ang(S, "pitch") ?? 0;
-    // Корабль присылает pitch как угол от "вверх", отражённый: горизонтальный
-    // полёт вправо даёт 270, наклон носом вверх-вправо на 40 гр. - 310. Экрану
-    // нужен поворот по часовой от вертикали, то есть ЗЕРКАЛО: -pitch.
-    // (Раньше стояло +180 - на 270 это совпадает с -270, потому и прошло
-    // проверку, а на любом другом угле силуэт заваливался в другую сторону.)
-    // У ускорителя опора отсчёта своя (точка посадки), его не трогаем.
     const spScr = -sp;
     shipG.setAttribute("transform", `rotate(${spScr.toFixed(1)})`);
   } else {
@@ -1535,17 +1178,12 @@ function render(){
     setGauge(gSg, null, 0, 1);
   }
 
-  // Часы берём у УСКОРИТЕЛЯ: только он получает команду Countdown и ставит
-  // missionTimer = time + TMinusCountdown, поэтому у него честный обратный
-  // отсчёт. У корабля missionTimer выводится из KSP-шного missionTime, то есть
-  // от момента появления судна на площадке, и до старта врёт.
   const met = bOK ? lerp(B,"met") : (sOK ? lerp(S,"met") : 0);
   const sign = met < 0 ? "T-" : "T+";
   $("met").innerHTML = `<span class="tp">${sign}</span>${hms(Math.abs(met))}`;
   $("toptp").textContent = sign;
   $("topmet").textContent = hms(Math.abs(met));
   document.body.classList.toggle("hold", isHold(met, bOK || sOK));
-  // кривизна дуги — по высоте того, кто выше по миссии
   const arcAlt = sOK ? (S.next.alt ?? 0) : (bOK ? (B.next.alt ?? 0) : 0);
   paintArc(met, arcAlt);
 
@@ -1563,8 +1201,6 @@ function isHold(met, live){
   return now - holdSince > 1500;
 }
 
-// Сбой в одном кадре раньше рвал цепочку rAF навсегда — оверлей молча замирал
-// и выглядел как «телеметрия не подтянулась». Теперь кадр пропускается.
 function renderSafe(){
   try {
     render();
@@ -1584,20 +1220,12 @@ function renderSafe(){
   }
 }
 
-// Приборы скрыты по умолчанию (display:none в CSS) и раньше включались только
-// одним разовым срабатыванием applyLayout при смене режима. Если это
-// срабатывание почему-то не случилось - опечатка в данных, гонка, будущая
-// правка - включать их СТАНОВИЛОСЬ НЕКОМУ, и снаружи это выглядело как
-// "телеметрия пропала". Сторож раз в секунду сверяет фактическое display
-// каждого id с тем, что должно быть видно в текущем режиме, и доделывает то,
-// что не доделал applyLayout. Не подменяет его - тот отвечает за анимацию
-// появления/исчезновения, сторож лишь гарантирует конечный результат.
 function reconcileVisibility(){
   const on = LAYOUT[curMode] || [];
   for (const id of ALL_WIDGETS){
     const el = document.getElementById(id);
     if (!el) continue;
-    if (pendingShow.has(id)) continue;   // applyLayout уже ведёт его к показу
+    if (pendingShow.has(id)) continue;
     const shouldShow = on.includes(id);
     const isVisible = getComputedStyle(el).display !== "none";
     if (shouldShow && !isVisible) revealWidget(el, id);
@@ -1612,25 +1240,10 @@ setInterval(reconcileVisibility, 1000);
 renderSafe();
 </script>
 
-<!-- ===================== ПЕСОЧНИЦА =====================
-     Включается ТОЛЬКО при открытии index.html?sandbox=1
-     В игре оверлей грузит index.html без параметров, и весь этот блок
-     не выполняется ни одной строкой. Точка входа - файл sandbox.html.
-     Панель пушит кадры в те же каналы B и S, что и WebView2, поэтому
-     проверяет ровно тот код, который работает в полёте.
-====================================================== -->
 <script>
 (function(){
   if (!/[?&]sandbox(=|&|$)/.test(location.search)) return;
 
-  // ---- описание полей: [ключ, подпись, min, max, шаг] ----
-  //
-  // Разделено намеренно. NUM_* - то, что текущий UI действительно читает и
-  // показывает. DEAD_* - поля, которые kOS пишет в telemetry.json, но ни один
-  // элемент экрана их не выводит. Ползунок для такого поля выглядел бы рабочим
-  // и не менял бы ничего - поэтому они вынесены в отдельную секцию с пометкой.
-  // Проверять принадлежность так (из папки ui):
-  //   head -1583 index.html > /tmp/x && grep -c '\.thr\b' /tmp/x
   var NUM_B = [
     ["met","MET, с — часы в центре",0,900,0.1],
     ["alt","Высота, м — прибор ALT и прогиб дуги",0,150000,10],
@@ -1654,8 +1267,6 @@ renderSafe();
     ["lfpct","Топливо, % — кольцо",0,100,0.1],
     ["oxpct","Окислитель, % — кольцо",0,100,0.1]
   ];
-  // Есть в телеметрии, но экран их не показывает. Крутить бессмысленно —
-  // держим для будущего UI (например, версии под Falcon 9).
   var DEAD_B = [
     ["thr","Тяга, %",0,100,1],
     ["mass","Масса, т",0,1300,0.1],
@@ -1679,7 +1290,6 @@ renderSafe();
     ["mass","Масса, т",0,1500,0.1],
     ["steerr","Ошибка наведения",0,180,0.1]
   ];
-  // Вехи. -1 = события ещё НЕ было (веха не горит), число = MET факта.
   var EV_B = [["evmaxq","Max Q — факт"],["evsep","Stage Sep — факт"],
               ["evland","SH Landing — факт"],["evlandeta","SH Landing — прогноз"]];
   var EV_S = [["evseco","SECO — факт"],["evsecoeta","SECO — прогноз"],
@@ -1728,7 +1338,6 @@ renderSafe();
   "#sbx .hint{color:#6b7c92;font-size:11px;margin:4px 0 8px}" +
   "body.sbx-on #bar{left:340px !important;width:calc(100% - 340px) !important}" +
   "body.sbx-on #nodata{display:none !important}" +
-  // Фон только в песочнице: на чёрном не видно, что подложки полупрозрачные.
   "body.sbx-on{background:linear-gradient(180deg,#0a4d8c 0%,#1276c4 45%,#2ea6e0 100%)}";
   document.head.appendChild(css);
   document.body.classList.add("sbx-on");
@@ -1856,7 +1465,6 @@ renderSafe();
     if (patch.phase) document.getElementById("sbxPhaseS").value = patch.phase;
   }
 
-  // Опорные точки взяты из настоящих логов, чтобы числа были правдоподобны.
   var KF_B = [
     {t:0,   alt:0,     spd:0,    vs:0,    thr:100, eng:33, ph:"ascent",    lf:100},
     {t:48,  alt:26000, spd:1100, vs:430,  thr:100, eng:33, ph:"ascent",    lf:52},
@@ -1922,8 +1530,6 @@ renderSafe();
     if (tSim >= 719   && st.s.evshipland < 0) applyS({evshipland:719});
   }
 
-  // Кадры уходят в те же каналы B и S, что и сообщения от WebView2.
-  // fresh() гасит канал через 2.5 с без новых кадров, поэтому шлём постоянно.
   setInterval(function(){
     step();
     var b = {}, s = {};

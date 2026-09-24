@@ -950,9 +950,6 @@ function F9DOrbNode {
     return nd.
 }
 
-// Пробный импульс по факту: сколько м/с² даёт fore вдоль F9DPushDir.
-// Гравитацию за время пробы вычитаем, иначе на радиальной компоненте она
-// за две секунды наберёт больше, чем Draco.
 function F9DProbe1 {
     local v0 is ship:velocity:orbit.
     local t0 is time:seconds.
@@ -982,8 +979,6 @@ function F9DProbe {
     return a.
 }
 
-// Любой узел на RCS: та же схема, что у схода (нос, ориентация, проба
-// знака fore), но стоп по остатку узла, а не по перигею.
 function F9DExecNode {
     parameter nd.
     local dv is nd:deltav:mag.
@@ -1120,7 +1115,6 @@ function F9DRndz {
     F9DOpEnd().
 }
 
-// Подход на RCS до F9DAppStop: гасим ОШИБКУ скорости, а не скорость.
 function F9DApproach {
     if not F9DTgtOk() return.
     local tv is F9DTgtV().
@@ -1189,9 +1183,6 @@ function F9DTgtPort {
     return best.
 }
 
-// Стыковка. Управляем от СВОЕГО порта: тогда facing - ось порта, и
-// трансляция идёт в его осях. Сначала встаём на ось порта цели на
-// F9DDockHold метров, потом идём по оси, закрывая боковую ошибку.
 function F9DDock {
     if not F9DTgtOk() return.
     local mp is F9DMyPort().
@@ -1285,8 +1276,6 @@ function F9DUndock {
     F9DLog("undocking: no docked ports").
 }
 
-// Загрузчик после первой сборки ставит bootfilename на f9dragon.ksm и
-// дальше борт с архивом не сверяет - правки молча не доходят до капсулы.
 if homeconnection:isconnected and exists("0:/f9dragon.ks") and exists("1:/boot/f9dragon.ks") {
     local sa is open("0:/f9dragon.ks"):readall:string:replace(char(65279), ""):replace(char(13), "").
     local sb is open("1:/boot/f9dragon.ks"):readall:string:replace(char(65279), ""):replace(char(13), "").
@@ -1331,7 +1320,6 @@ F9DHd:addspacing(-1).
 set F9DHdR to F9DHd:addvlayout().
 set F9DClock to F9DLabel(F9DHdR, "", 19, F9DAcc, true, "right").
 set F9DState to F9DLabel(F9DHdR, "", 9, F9DGray, true, "right").
-// 24.09: управление капсулой сырое - в релизе помечено, что доделается позже.
 set F9DBeta to F9DLabel(F9DWin, "EXPERIMENTAL - full Dragon control will be in the next version", 10, F9DYel, true, "center").
 set F9DBeta:style:wordwrap to true.
 F9DDivider(F9DWin).
